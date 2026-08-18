@@ -39,7 +39,7 @@
 
 ## Document
 [Click](https://v2board.com)
-
+[ How to build](https://github.com/basumobai/v2board-for-Mundo-X-build/blob/d102753484bdbfbc300b4492da8a5dd6b5765410/How%20to%20build.md)
 ## Sponsors
 Thanks to the open source project license provided by [Jetbrains](https://www.jetbrains.com/)
 
