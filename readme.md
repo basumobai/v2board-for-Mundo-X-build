@@ -2,6 +2,8 @@
 
 [![](https://img.shields.io/badge/TgChat-@mconnectofficial-blue.svg)](https://t.me/mconnectofficial)
 
+[build guide](https://github.com/basumobai/v2board-for-Mundo-X-build/blob/d102753484bdbfbc300b4492da8a5dd6b5765410/How%20to%20build.md)
+
 ## 本分支支持的后端
  - [Mundo X后端](https://github.com/Mundo-Connect/M)
  - [Mundo X网址](https://668993.xyz)
