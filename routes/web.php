@@ -43,6 +43,15 @@ Route::get('/', function (Request $request) {
 
 //TODO:: 兼容
 Route::get('/' . config('v2board.secure_path', config('v2board.frontend_admin_path', hash('crc32b', config('app.key')))), function () {
+    $customCssPath = public_path('assets/admin/custom.css');
+    $customJavascriptPath = public_path('assets/admin/custom.js');
+    clearstatcache(true, $customCssPath);
+    clearstatcache(true, $customJavascriptPath);
+    $adminUiVersion = max(
+        is_file($customCssPath) ? filemtime($customCssPath) : 0,
+        is_file($customJavascriptPath) ? filemtime($customJavascriptPath) : 0
+    );
+
     return view('admin', [
         'title' => config('v2board.app_name', 'V2Board'),
         'theme_sidebar' => config('v2board.frontend_theme_sidebar', 'light'),
@@ -50,6 +59,7 @@ Route::get('/' . config('v2board.secure_path', config('v2board.frontend_admin_pa
         'theme_color' => config('v2board.frontend_theme_color', 'default'),
         'background_url' => config('v2board.frontend_background_url'),
         'version' => config('app.version'),
+        'admin_ui_version' => $adminUiVersion ?: config('app.version'),
         'logo' => config('v2board.logo'),
         'secure_path' => config('v2board.secure_path', config('v2board.frontend_admin_path', hash('crc32b', config('app.key'))))
     ]);
