@@ -56,15 +56,23 @@ class V2boardInstall extends Command
             if (!copy(base_path() . '/.env.example', base_path() . '/.env')) {
                 abort(500, '复制环境文件失败，请检查目录权限');
             }
-            $this->saveToEnv([
+            $environment = [
                 'APP_KEY' => 'base64:' . base64_encode(Encrypter::generateKey('AES-256-CBC')),
-                'DB_HOST' => $this->ask('请输入数据库地址（默认:localhost）', 'localhost'),
+                'DB_HOST' => $this->ask('请输入数据库地址（默认:127.0.0.1）', '127.0.0.1'),
                 'DB_DATABASE' => $this->ask('请输入数据库名'),
                 'DB_USERNAME' => $this->ask('请输入数据库用户名'),
                 'DB_PASSWORD' => $this->ask('请输入数据库密码')
-            ]);
+            ];
+            $this->saveToEnv($environment);
             \Artisan::call('config:clear');
-            \Artisan::call('config:cache');
+            config([
+                'app.key' => $environment['APP_KEY'],
+                'database.connections.mysql.host' => $environment['DB_HOST'],
+                'database.connections.mysql.database' => $environment['DB_DATABASE'],
+                'database.connections.mysql.username' => $environment['DB_USERNAME'],
+                'database.connections.mysql.password' => $environment['DB_PASSWORD'],
+            ]);
+            DB::purge(config('database.default'));
             try {
                 DB::connection()->getPdo();
             } catch (\Exception $e) {
@@ -102,8 +110,10 @@ class V2boardInstall extends Command
 
             $defaultSecurePath = hash('crc32b', config('app.key'));
             $this->info("访问 http(s)://你的站点/{$defaultSecurePath} 进入管理面板，你可以在用户中心修改你的密码。");
+            return 0;
         } catch (\Exception $e) {
             $this->error($e->getMessage());
+            return 1;
         }
     }
 

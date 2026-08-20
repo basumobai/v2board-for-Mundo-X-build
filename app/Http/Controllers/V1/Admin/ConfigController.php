@@ -5,15 +5,20 @@ namespace App\Http\Controllers\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ConfigSave;
 use App\Jobs\SendEmailJob;
+use App\Services\RuntimeConfigService;
 use App\Services\TelegramService;
 use App\Utils\Dict;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Cache;
 
 class ConfigController extends Controller
 {
+    private $runtimeConfig;
+
+    public function __construct(RuntimeConfigService $runtimeConfig)
+    {
+        $this->runtimeConfig = $runtimeConfig;
+    }
+
     public function getEmailTemplate()
     {
         $path = resource_path('views/mail/');
@@ -67,6 +72,8 @@ class ConfigController extends Controller
 
     public function fetch(Request $request)
     {
+        $this->runtimeConfig->refreshV2boardConfig();
+
         $key = $request->input('key');
         $data = [
             'ticket' => [
@@ -99,6 +106,7 @@ class ConfigController extends Controller
                 'app_url' => config('v2board.app_url'),
                 'subscribe_url' => config('v2board.subscribe_url'),
                 'subscribe_path' => config('v2board.subscribe_path'),
+                'try_out_enable' => (int)config('v2board.try_out_enable', 0),
                 'try_out_plan_id' => (int)config('v2board.try_out_plan_id', 0),
                 'try_out_hour' => (int)config('v2board.try_out_hour', 1),
                 'tos_url' => config('v2board.tos_url'),
@@ -189,33 +197,30 @@ class ConfigController extends Controller
     public function save(ConfigSave $request)
     {
         $data = $request->validated();
-        $config = config('v2board');
-        foreach (ConfigSave::RULES as $k => $v) {
-            if (!in_array($k, array_keys(ConfigSave::RULES))) {
-                unset($config[$k]);
-                continue;
-            }
+        $config = $this->runtimeConfig->loadV2boardConfig();
+        $routeConfigurationChanged = false;
+        $routeConfigurationKeys = ['secure_path', 'subscribe_path', 'force_https'];
+        foreach (array_keys(ConfigSave::RULES) as $k) {
             if (array_key_exists($k, $data)) {
+                if (in_array($k, $routeConfigurationKeys, true)
+                    && ($config[$k] ?? null) !== $data[$k]) {
+                    $routeConfigurationChanged = true;
+                }
                 $config[$k] = $data[$k];
             }
         }
-        $data = var_export($config, 1);
-        if (!File::put(base_path() . '/config/v2board.php', "<?php\n return $data ;")) {
+
+        try {
+            $this->runtimeConfig->saveV2boardConfig($config);
+        } catch (\Throwable $exception) {
+            report($exception);
             abort(500, '修改失败');
         }
-        if (function_exists('opcache_reset')) {
-            if (opcache_reset() === false) {
-                abort(500, '缓存清除失败，请卸载或检查opcache配置状态');
-            }
+
+        if ($routeConfigurationChanged) {
+            $this->runtimeConfig->requestWorkerReload();
         }
-        Artisan::call('config:cache');
-        if(Cache::has('WEBMANPID')) {
-            $pid = Cache::get('WEBMANPID');
-            Cache::forget('WEBMANPID');
-            return response([
-                'data' => posix_kill($pid, 15)
-            ]);
-        }
+
         return response([
             'data' => true
         ]);

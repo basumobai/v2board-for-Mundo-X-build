@@ -75,16 +75,18 @@ class ShadowsocksController extends Controller
     public function copy(Request $request)
     {
         $server = ServerShadowsocks::find($request->input('id'));
-        $server->show = 0;
         if (!$server) {
             abort(500, '服务器不存在');
         }
-        if (!ServerShadowsocks::create($server->toArray())) {
+
+        $copy = $server->replicate();
+        $copy->show = 0;
+        if (!$copy->save()) {
             abort(500, '复制失败');
         }
 
         return response([
-            'data' => true
+            'data' => $copy->fresh()
         ]);
     }
 }

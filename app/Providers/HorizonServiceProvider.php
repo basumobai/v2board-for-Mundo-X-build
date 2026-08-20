@@ -2,9 +2,8 @@
 
 namespace App\Providers;
 
-use Illuminate\Http\Request;
+use App\Services\AuthService;
 use Illuminate\Support\Facades\Gate;
-use Laravel\Horizon\Horizon;
 use Laravel\Horizon\HorizonApplicationServiceProvider;
 
 class HorizonServiceProvider extends HorizonApplicationServiceProvider
@@ -34,10 +33,17 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
      */
     protected function gate()
     {
-        Gate::define('viewHorizon', function ($user) {
-            return in_array($user->email, [
-                //
-            ]);
+        Gate::define('viewHorizon', function ($user = null) {
+            $authorization = request()->input('auth_data')
+                ?? request()->header('authorization');
+
+            if (!$authorization) {
+                return false;
+            }
+
+            $v2boardUser = AuthService::decryptAuthData($authorization);
+
+            return $v2boardUser && !empty($v2boardUser['is_admin']);
         });
     }
 }

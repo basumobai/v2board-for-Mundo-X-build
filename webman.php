@@ -3,8 +3,8 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 use Adapterman\Adapterman;
+use App\Services\RuntimeConfigService;
 use Workerman\Worker;
-use Illuminate\Support\Facades\Cache;
 
 putenv('APP_RUNNING_IN_CONSOLE=false');
 define('MAX_REQUEST', 6600);
@@ -25,13 +25,11 @@ $http_worker->onWorkerStart = static function () {
 
 $http_worker->onMessage = static function ($connection, $request) {
     static $request_count = 0;
-    static $pid;
-    if ($request_count == 1) {
-        $pid = posix_getppid();
-        Cache::forget("WEBMANPID");
-        Cache::forever("WEBMANPID", $pid);
-    }
     $connection->send(run());
+    $runtimeConfig = app(RuntimeConfigService::class);
+    if ($runtimeConfig->pullWorkerReloadRequest() && defined('SIGUSR2')) {
+        @posix_kill(posix_getppid(), SIGUSR2);
+    }
     if (++$request_count > MAX_REQUEST) {
         Worker::stopAll();
     }

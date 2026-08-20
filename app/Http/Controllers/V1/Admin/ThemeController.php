@@ -3,18 +3,20 @@
 namespace App\Http\Controllers\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\RuntimeConfigService;
 use App\Services\ThemeService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 
 class ThemeController extends Controller
 {
     private $themes;
     private $path;
+    private $runtimeConfig;
 
-    public function __construct()
+    public function __construct(RuntimeConfigService $runtimeConfig)
     {
+        $this->runtimeConfig = $runtimeConfig;
         $this->path = $path = public_path('theme/');
         $this->themes = array_map(function ($item) use ($path) {
             return str_replace($path, '', $item);
@@ -28,10 +30,10 @@ class ThemeController extends Controller
             $themeConfigFile = $this->path . "{$theme}/config.json";
             if (!File::exists($themeConfigFile)) continue;
             $themeConfig = json_decode(File::get($themeConfigFile), true);
-            if (!isset($themeConfig['configs']) || !is_array($themeConfig)) continue;
+            if (!isset($themeConfig['configs']) || !is_array($themeConfig['configs'])) continue;
             $themeConfigs[$theme] = $themeConfig;
-            if (config("theme.{$theme}")) continue;
-            $themeService = new ThemeService($theme);
+            if ($this->runtimeConfig->loadThemeConfig($theme)) continue;
+            $themeService = new ThemeService($theme, $this->runtimeConfig);
             $themeService->init();
         }
         return response([
@@ -48,7 +50,7 @@ class ThemeController extends Controller
             'name' => 'required|in:' . join(',', $this->themes)
         ]);
         return response([
-            'data' => config("theme.{$payload['name']}")
+            'data' => $this->runtimeConfig->loadThemeConfig($payload['name'])
         ]);
     }
 
@@ -63,7 +65,7 @@ class ThemeController extends Controller
         $themeConfigFile = public_path("theme/{$payload['name']}/config.json");
         if (!File::exists($themeConfigFile)) abort(500, '主题不存在');
         $themeConfig = json_decode(File::get($themeConfigFile), true);
-        if (!isset($themeConfig['configs']) || !is_array($themeConfig)) abort(500, '主题配置文件有误');
+        if (!isset($themeConfig['configs']) || !is_array($themeConfig['configs'])) abort(500, '主题配置文件有误');
         $validateFields = array_column($themeConfig['configs'], 'field_name');
         $config = [];
         foreach ($validateFields as $validateField) {
@@ -72,15 +74,10 @@ class ThemeController extends Controller
 
         File::ensureDirectoryExists(base_path() . '/config/theme/');
 
-        $data = var_export($config, 1);
-        if (!File::put(base_path() . "/config/theme/{$payload['name']}.php", "<?php\n return $data ;")) {
-            abort(500, '修改失败');
-        }
-
         try {
-            Artisan::call('config:cache');
-//            sleep(2);
-        } catch (\Exception $e) {
+            $this->runtimeConfig->saveThemeConfig($payload['name'], $config);
+        } catch (\Throwable $exception) {
+            report($exception);
             abort(500, '保存失败');
         }
 
