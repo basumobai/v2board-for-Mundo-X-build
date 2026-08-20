@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - "codex/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: bcmath, curl, dom, fileinfo, gd, igbinary, intl, mbstring, pcntl, pdo_mysql, posix, redis, sockets, zip
+          coverage: none
+
+      - name: Validate Composer metadata
+        run: composer validate --no-check-publish
+
+      - name: Detect dependency lock
+        id: dependency-lock
+        run: |
+          if test -f composer.lock; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve dependencies when the lock file is missing
+        if: ${{ steps.dependency-lock.outputs.present == 'false' }}
+        run: composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Install locked dependencies
+        if: ${{ steps.dependency-lock.outputs.present == 'true' }}
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Upload generated lock file
+        if: ${{ steps.dependency-lock.outputs.present == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: composer-lock
+          path: composer.lock
+          if-no-files-found: error
+
+      - name: Check PHP platform requirements
+        run: composer check-platform-reqs
+
+      - name: Lint PHP sources
+        run: find app config routes tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Run unit tests
+        run: vendor/bin/phpunit --testsuite Unit
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose config --quiet

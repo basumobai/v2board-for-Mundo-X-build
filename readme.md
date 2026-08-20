@@ -1,54 +1,62 @@
-<img src="https://avatars.githubusercontent.com/u/56885001?s=200&v=4" alt="logo" width="130" height="130" align="right"/>
+<img src="https://avatars.githubusercontent.com/u/56885001?s=200&v=4" alt="Mundo logo" width="130" height="130" align="right"/>
 
-[![](https://img.shields.io/badge/TgChat-@mconnectofficial-blue.svg)](https://t.me/mconnectofficial)
+# V2Board for Mundo X
 
-[build guide](https://github.com/basumobai/v2board-for-Mundo-X-build/blob/d102753484bdbfbc300b4492da8a5dd6b5765410/How%20to%20build.md)
+基于 [Mundo-Connect/v2board](https://github.com/Mundo-Connect/v2board) 的 Docker 部署分支，面向 Ubuntu、宝塔 Nginx、宿主机 MySQL 和 Mundo X 节点。
 
-## 本分支支持的后端
- - [Mundo X后端](https://github.com/Mundo-Connect/M)
- - [Mundo X网址](https://668993.xyz)
+本分支提供：
 
-## 原版迁移步骤
+- PHP 8.2、AdapterMan、Nginx、Redis、Horizon 和 Scheduler 的 Compose 配置；
+- 仅监听 `127.0.0.1:6600` 与 `127.0.0.1:7001` 的反向代理结构；
+- AdapterMan 常驻 Worker 下的动态配置与主题配置刷新；
+- V2Board 管理员令牌驱动的 Horizon 鉴权；
+- 数据库事务跨请求隔离；
+- Mundo X、VMess、VLESS、Shadowsocks 等节点复制修复；
+- 完整安装、验收、备份和故障排查文档。
 
-按以下步骤进行面板代码文件迁移：
+## 部署文档
 
-    git remote set-url origin https://github.com/wyx2685/v2board  
-    git checkout master  
-    ./update.sh  
+[阅读完整 Docker 部署与排错指南](./How%20to%20build.md)
 
+最短流程：
 
-按以下步骤配置缓存驱动为redis，然后刷新设置缓存，重启队列:
+```bash
+git clone https://github.com/basumobai/v2board-for-Mundo-X-build.git mundo-v2board
+cd mundo-v2board
 
-    sed -i 's/^CACHE_DRIVER=.*/CACHE_DRIVER=redis/' .env
-    php artisan config:clear
-    php artisan config:cache
-    php artisan horizon:terminate
+docker compose build --pull
+docker compose up -d redis
+docker compose run --rm web composer install \
+  --no-dev --prefer-dist --optimize-autoloader --no-interaction
+docker compose run --rm web php artisan v2board:install
+docker compose run --rm web php artisan config:clear
+docker compose up -d
+```
 
-最后进入后台重新保存主题： 主题配置-选择default主题-主题设置-确定保存
+安装前请先阅读完整指南。V2Board 仍需要数据库和管理员初始化，因此全新安装不是单纯执行一次 `docker compose up -d`。
 
-# **V2Board**
+## Mundo X
 
-- PHP7.3+
-- Composer
-- MySQL5.5+
-- Redis
-- Laravel
+- [Mundo X 后端](https://github.com/Mundo-Connect/M)
+- [Mundo X 网站](https://668993.xyz)
+- Telegram：[@mconnectofficial](https://t.me/mconnectofficial)
 
-## Demo
-[Demo_user](https://v2bdemo.v-50.me/)
-[Demo_admin](https://v2bdemo.v-50.me/admindashboard)
-邮箱和密码可随意输入
+## 重要注意事项
 
-## Document
-[Click](https://v2board.com)
-[ How to build](https://github.com/basumobai/v2board-for-Mundo-X-build/blob/d102753484bdbfbc300b4492da8a5dd6b5765410/How%20to%20build.md)
-## Sponsors
-Thanks to the open source project license provided by [Jetbrains](https://www.jetbrains.com/)
+- 不要提交 `.env`、数据库密码、管理员令牌或节点通信密钥；
+- 不要运行 `docker compose down -v`，它会删除 Redis 数据卷；
+- 不要执行 `php artisan config:cache`，动态面板配置必须保持可重新载入；
+- 不要在生产目录直接运行会执行 `git reset --hard` 的更新脚本；
+- 更新前先备份数据库、`.env`、`config/v2board.php` 和主题配置。
 
-## Community
-🔔Telegram Group: [@mconnectofficial](https://t.me/mconnectofficial)  
+## 上游要求
 
-## How to Feedback
-Follow the template in the issue to submit your question correctly, and we will have someone follow up with you.
+- PHP 7.3+；本 Docker 运行环境固定使用 PHP 8.2；
+- MySQL；
+- Redis；
+- Composer；
+- Laravel 8。
 
+## 反馈
 
+提交 Issue 时请提供可复现步骤、相关容器状态和已经打码的日志。不要公开密码、JWT、订阅令牌或节点通信密钥。
