@@ -25,7 +25,7 @@ git clone https://github.com/basumobai/v2board-for-Mundo-X-build.git mundo-v2boa
 cd mundo-v2board
 
 docker compose build --pull
-docker compose up -d redis
+docker compose up -d --wait redis
 docker compose run --rm web composer install \
   --no-dev --prefer-dist --optimize-autoloader --no-interaction
 docker compose run --rm web php artisan v2board:install
@@ -33,7 +33,7 @@ docker compose run --rm web php artisan config:clear
 docker compose up -d
 ```
 
-安装前请先阅读完整指南。V2Board 仍需要数据库和管理员初始化，因此全新安装不是单纯执行一次 `docker compose up -d`。
+安装前请先阅读完整指南。安装器会询问完整面板 URL、数据库参数和管理员邮箱，并且拒绝向非空数据库安装。V2Board 因此不是单纯执行一次 `docker compose up -d` 就能完成全新安装。
 
 ## Mundo X
 

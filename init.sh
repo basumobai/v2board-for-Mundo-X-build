@@ -11,7 +11,7 @@ fi
 
 docker compose config --quiet
 docker compose build --pull
-docker compose up -d redis
+docker compose up -d --wait redis
 docker compose exec redis redis-cli -s /data/redis.sock ping
 docker compose run --rm web composer install \
     --no-dev \

@@ -67,7 +67,40 @@ MySQL 可以监听 `127.0.0.1:3306`。安装前 `6600` 和 `7001` 应为空闲�
 
 如果已经能够成功运行 `docker run --rm hello-world`，跳过本节。
 
-推荐使用 Docker 官方仓库安装 Engine 与 Compose 插件。安装后检查：
+下面使用 [Docker 官方 Ubuntu apt 仓库](https://docs.docker.com/engine/install/ubuntu/)。以 `root` 运行：
+
+```bash
+apt update
+apt install -y ca-certificates curl git
+
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+tee /etc/apt/sources.list.d/docker.sources >/dev/null <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+apt update
+apt install -y \
+  docker-ce \
+  docker-ce-cli \
+  containerd.io \
+  docker-buildx-plugin \
+  docker-compose-plugin
+
+systemctl enable --now docker
+```
+
+如果 `apt` 报告 `docker.io`、`docker-compose`、`podman-docker`、`containerd` 或 `runc` 冲突，先停止安装，确认服务器上是否已有容器与数据。不要在未备份时盲目卸载现有容器环境。
+
+安装后检查：
 
 ```bash
 docker --version
@@ -76,7 +109,9 @@ systemctl is-active docker
 docker run --rm hello-world
 ```
 
-四项都成功后再继续。不要同时混用 Snap Docker、`docker.io` 和 Docker 官方包。
+四项都成功后再继续。本指南使用带空格的 `docker compose`，不是旧命令 `docker-compose`。不要同时混用 Snap Docker、Ubuntu `docker.io` 和 Docker 官方包。
+
+Docker 官方文档提醒，对外发布的容器端口可能绕过 UFW 的常规规则。本仓库因此将 `6600` 和 `7001` 明确绑定到 `127.0.0.1`，但仍应检查云防火墙与实际监听地址。
 
 ## 4. 下载仓库
 
@@ -93,34 +128,17 @@ git status --short
 
 ## 5. 准备安装参数
 
-首次安装前只修改 `.env.example`，不要复制成 `.env`。安装器检测到 `.env` 已存在时会认为项目已经安装。
+不要修改受 Git 跟踪的 `.env.example`，也不要提前复制成 `.env`。安装器会生成已忽略的 `.env`；如果提前存在 `.env`，安装器会为避免覆盖现有站点而停止。
 
-至少修改以下占位值：
+请先准备好：
 
-```dotenv
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://panel.example.com
+- V2Board 完整访问网址，例如 `https://panel.example.com`；
+- 数据库地址，本方案为 `127.0.0.1`；
+- 空数据库的库名与专用用户名；
+- 数据库密码；
+- 管理员邮箱。
 
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=v2board
-DB_USERNAME=v2board
-DB_PASSWORD=
-
-CACHE_DRIVER=redis
-QUEUE_CONNECTION=redis
-SESSION_DRIVER=redis
-HORIZON_MAX_PROCESSES=4
-
-REDIS_HOST=/data/redis.sock
-REDIS_PASSWORD=null
-REDIS_PORT=0
-
-SESSION_SECURE_COOKIE=true
-```
-
-不要把真实数据库密码提交到 Git，也不要把密码直接写进可公开复制的命令。
+完整网址是正在搭建的 V2Board 域名，不是宝塔面板自己的管理域名。安装器会隐藏数据库密码输入。不要把真实密码提交到 Git，也不要粘贴到聊天、截图或可公开复制的命令中。
 
 确认应用尚未安装：
 
@@ -136,7 +154,7 @@ cd /opt/mundo-v2board
 
 docker compose config --quiet
 docker compose build --pull
-docker compose up -d redis
+docker compose up -d --wait redis
 docker compose exec redis redis-cli -s /data/redis.sock ping
 ```
 
@@ -204,11 +222,15 @@ docker compose run --rm web php artisan v2board:install
 安装器询问数据库信息时填写：
 
 ```text
+面板完整网址：https://你的 V2Board 域名
 数据库地址：127.0.0.1
 数据库名：自己的数据库名
 数据库用户名：自己的数据库用户
-数据库密码：自己的数据库密码
+数据库密码：自己的数据库密码（输入时不显示）
 ```
+
+安装器会先检查数据库是否为空库。只要存在任何表就会停止，不会覆盖旧数据。
+完整面板网址会同时写入 `.env` 和面板运行时配置；使用 HTTPS URL 时会同步启用 HTTPS URL 生成。
 
 成功后安装器会输出：
 
@@ -217,6 +239,16 @@ docker compose run --rm web php artisan v2board:install
 - 随机后台路径。
 
 立即把这些信息保存在密码管理器中。首次登录后更换管理员密码。
+
+不显示密码地检查关键运行参数：
+
+```bash
+grep -E \
+  '^(APP_ENV|APP_DEBUG|APP_URL|DB_HOST|DB_PORT|DB_DATABASE|DB_USERNAME|CACHE_DRIVER|QUEUE_CONNECTION|SESSION_DRIVER|REDIS_HOST|REDIS_PORT|SESSION_SECURE_COOKIE)=' \
+  .env
+```
+
+不要运行 `cat .env`，也不要输出 `DB_PASSWORD`。
 
 如果安装失败后 `.env` 已经产生，不要立即重复运行安装器。先检查数据库中是否已经创建表。只有在确认数据库仍为空、安装确实未完成时，才能删除失败安装产生的 `.env` 后重新安装。
 
