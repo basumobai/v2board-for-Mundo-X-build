@@ -375,6 +375,23 @@ Cloudflare 开启代理后，域名解析显示 Cloudflare IP 属于正常现象
 
 新节点应立即出现在列表中，连续请求不能在新旧列表之间跳动。
 
+### 13.4 管理界面
+
+仓库已经通过 `public/assets/admin/custom.css` 和 `custom.js` 提供现代化管理界面，不需要安装 Node.js，也不要修改或重新压缩原版 `umi.js`：
+
+- 桌面端确认侧栏、顶栏、数据卡片、表格和抽屉表单显示正常；
+- 手机端确认侧栏可以打开和关闭，节点页“+”、搜索框与保存按钮均可点击；
+- 使用键盘 `Tab` 确认当前焦点清晰可见；
+- 浏览器页面缩放不应被禁止；
+- 明暗模式以及默认、黑色、暗蓝、绿色主题切换后，自定义界面不应退回旧样式。
+
+自定义 CSS 和 JavaScript 使用各自文件修改时间生成缓存版本。执行 `git pull` 后，浏览器会请求新的资源 URL，通常不需要手工清除 Cloudflare 或浏览器缓存。可以检查资源是否返回 `200`：
+
+```bash
+curl -I https://panel.example.com/assets/admin/custom.css
+curl -I https://panel.example.com/assets/admin/custom.js
+```
+
 ## 14. 已知错误与处理
 
 ### `docker: command not found`
@@ -537,6 +554,8 @@ docker compose up -d
 - [ ] 流量重置方式保存后不会回退；
 - [ ] 主题配置能够保存；
 - [ ] 新增和复制节点无需刷新即可看到；
+- [ ] 管理界面自定义 CSS、JavaScript 返回 200，桌面端与手机端均可操作；
+- [ ] 键盘焦点可见，浏览器页面缩放未被禁止；
 - [ ] `bootstrap/cache/config.php` 不存在；
 - [ ] 没有使用 `SIGTERM` 重启 Web；
 - [ ] 数据库和配置文件有可恢复备份；
