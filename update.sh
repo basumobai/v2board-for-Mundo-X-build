@@ -1,34 +1,32 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-if [ ! -d ".git" ]; then
-  echo "Please deploy using Git."
-  exit 1
-fi
+set -euo pipefail
 
-if ! command -v git &> /dev/null; then
-    echo "Git is not installed! Please install git and try again."
+cd "$(dirname "$0")"
+
+if ! test -d .git; then
+    echo '当前目录不是 Git 仓库，无法安全更新。'
     exit 1
 fi
 
-git config --global --add safe.directory $(pwd)
-git fetch --all && git reset --hard origin/master && git pull origin master
-rm -rf composer.lock composer.phar
-wget https://github.com/composer/composer/releases/latest/download/composer.phar -O composer.phar
-php composer.phar update -vvv
-
-php_main_version=$(php -v | head -n 1 | cut -d ' ' -f 2 | cut -d '.' -f 1)
-if [ $php_main_version -ge 8 ]; then
-    php composer.phar require joanhey/adapterman
-    if ! php -m | grep -q "pcntl"; then
-        echo "Adding pcntl extension to cli-php.ini"
-        sed -i '/extension=redis.so/a extension=pcntl.so' cli-php.ini
-    fi
-    php -c cli-php.ini webman.php stop
-    echo "Webman stopped.Please restart it by yourself."
+if test -n "$(git status --porcelain)"; then
+    echo '工作区存在未提交修改。请先检查、提交或备份，更新已停止。'
+    git status --short
+    exit 1
 fi
 
-php artisan v2board:update
+echo '继续前请确认数据库、.env、config/v2board.php 和主题配置已经备份。'
 
-if [ -f "/etc/init.d/bt" ]; then
-  chown -R www $(pwd);
-fi
+git pull --ff-only
+docker compose config --quiet
+docker compose build --pull
+docker compose up -d redis
+docker compose run --rm web composer install \
+    --no-dev \
+    --prefer-dist \
+    --optimize-autoloader \
+    --no-interaction
+docker compose run --rm web php artisan v2board:update
+docker compose run --rm web php artisan config:clear
+docker compose up -d
+docker compose ps
