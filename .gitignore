@@ -4,7 +4,6 @@
 /public/storage
 /public/env.example.js
 /public/favicon.ico
-/public/assets/admin/custom.css
 /storage/*.key
 /vendor
 .env
@@ -17,7 +16,6 @@ Homestead.yaml
 npm-debug.log
 yarn-error.log
 composer.phar
-composer.lock
 yarn.lock
 docker-compose.yml
 .DS_Store

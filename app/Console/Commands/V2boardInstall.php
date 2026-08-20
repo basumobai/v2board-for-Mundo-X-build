@@ -5,8 +5,10 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Encryption\Encrypter;
 use App\Models\User;
+use App\Services\RuntimeConfigService;
 use App\Utils\Helper;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class V2boardInstall extends Command
 {
@@ -56,35 +58,59 @@ class V2boardInstall extends Command
             if (!copy(base_path() . '/.env.example', base_path() . '/.env')) {
                 abort(500, '复制环境文件失败，请检查目录权限');
             }
-            $this->saveToEnv([
+
+            $appUrl = $this->normalizeAppUrl((string)$this->ask(
+                '请输入面板完整网址（例如：https://panel.example.com）'
+            ));
+            $environment = [
                 'APP_KEY' => 'base64:' . base64_encode(Encrypter::generateKey('AES-256-CBC')),
-                'DB_HOST' => $this->ask('请输入数据库地址（默认:localhost）', 'localhost'),
+                'APP_URL' => $appUrl,
+                'DB_HOST' => $this->ask('请输入数据库地址（默认:127.0.0.1）', '127.0.0.1'),
                 'DB_DATABASE' => $this->ask('请输入数据库名'),
                 'DB_USERNAME' => $this->ask('请输入数据库用户名'),
-                'DB_PASSWORD' => $this->ask('请输入数据库密码')
-            ]);
+                'DB_PASSWORD' => (string)$this->secret('请输入数据库密码（输入不会显示）')
+            ];
+            $this->saveToEnv($environment);
             \Artisan::call('config:clear');
-            \Artisan::call('config:cache');
+            config([
+                'app.key' => $environment['APP_KEY'],
+                'app.url' => $environment['APP_URL'],
+                'database.connections.mysql.host' => $environment['DB_HOST'],
+                'database.connections.mysql.database' => $environment['DB_DATABASE'],
+                'database.connections.mysql.username' => $environment['DB_USERNAME'],
+                'database.connections.mysql.password' => $environment['DB_PASSWORD'],
+            ]);
+            app(RuntimeConfigService::class)->saveV2boardConfig([
+                'app_url' => $environment['APP_URL'],
+                'force_https' => parse_url($environment['APP_URL'], PHP_URL_SCHEME) === 'https' ? 1 : 0,
+            ]);
+            DB::purge(config('database.default'));
             try {
                 DB::connection()->getPdo();
             } catch (\Exception $e) {
                 abort(500, '数据库连接失败');
             }
+
+            if (count(DB::select('SHOW TABLES')) > 0) {
+                abort(500, '数据库不是空库，为避免覆盖现有数据，安装已停止');
+            }
+
             $file = \File::get(base_path() . '/database/install.sql');
             if (!$file) {
                 abort(500, '数据库文件不存在');
             }
-            $sql = str_replace("\n", "", $file);
-            $sql = preg_split("/;/", $sql);
-            if (!is_array($sql)) {
+            $statements = preg_split('/;\s*(?:\r?\n|$)/', $file);
+            if (!is_array($statements)) {
                 abort(500, '数据库文件格式有误');
             }
             $this->info('正在导入数据库请稍等...');
-            foreach ($sql as $item) {
-                try {
-                    DB::select(DB::raw($item));
-                } catch (\Exception $e) {
+            foreach ($statements as $statement) {
+                $statement = trim($statement);
+                if ($statement === '') {
+                    continue;
                 }
+
+                DB::unprepared($statement);
             }
             $this->info('数据库导入完成');
             $email = '';
@@ -102,8 +128,10 @@ class V2boardInstall extends Command
 
             $defaultSecurePath = hash('crc32b', config('app.key'));
             $this->info("访问 http(s)://你的站点/{$defaultSecurePath} 进入管理面板，你可以在用户中心修改你的密码。");
-        } catch (\Exception $e) {
+            return 0;
+        } catch (\Throwable $e) {
             $this->error($e->getMessage());
+            return 1;
         }
     }
 
@@ -121,35 +149,55 @@ class V2boardInstall extends Command
         return $user->save();
     }
 
-    private function saveToEnv($data = [])
+    private function normalizeAppUrl(string $appUrl): string
     {
-        function set_env_var($key, $value)
-        {
-            if (! is_bool(strpos($value, ' '))) {
-                $value = '"' . $value . '"';
-            }
-            $key = strtoupper($key);
+        $appUrl = rtrim(trim($appUrl), '/');
+        $scheme = parse_url($appUrl, PHP_URL_SCHEME);
 
-            $envPath = app()->environmentFilePath();
-            $contents = file_get_contents($envPath);
+        if (!filter_var($appUrl, FILTER_VALIDATE_URL)
+            || !in_array($scheme, ['http', 'https'], true)) {
+            throw new RuntimeException('面板网址无效，必须填写包含 http:// 或 https:// 的完整网址');
+        }
 
-            preg_match("/^{$key}=[^\r\n]*/m", $contents, $matches);
+        return $appUrl;
+    }
 
-            $oldValue = count($matches) ? $matches[0] : '';
+    private function saveToEnv(array $data = []): bool
+    {
+        $envPath = app()->environmentFilePath();
+        $contents = file_get_contents($envPath);
+        if ($contents === false) {
+            throw new RuntimeException('无法读取 .env 文件');
+        }
 
-            if ($oldValue) {
-                $contents = str_replace("{$oldValue}", "{$key}={$value}", $contents);
+        foreach ($data as $key => $value) {
+            $key = strtoupper((string)$key);
+            $line = $key . '=' . $this->formatEnvValue((string)$value);
+            $pattern = '/^' . preg_quote($key, '/') . '=[^\r\n]*/m';
+
+            if (preg_match($pattern, $contents, $matches, PREG_OFFSET_CAPTURE)) {
+                $match = $matches[0];
+                $contents = substr_replace($contents, $line, $match[1], strlen($match[0]));
             } else {
-                $contents = $contents . "\n{$key}={$value}\n";
+                $contents = rtrim($contents, "\r\n") . PHP_EOL . $line . PHP_EOL;
             }
+        }
 
-            $file = fopen($envPath, 'w');
-            fwrite($file, $contents);
-            return fclose($file);
+        if (file_put_contents($envPath, $contents, LOCK_EX) === false) {
+            throw new RuntimeException('无法写入 .env 文件');
         }
-        foreach($data as $key => $value) {
-            set_env_var($key, $value);
-        }
+
         return true;
+    }
+
+    private function formatEnvValue(string $value): string
+    {
+        $escaped = str_replace(
+            ["\\", '"', "\r", "\n", '$'],
+            ["\\\\", '\\"', '', '\\n', '\\$'],
+            $value
+        );
+
+        return '"' . $escaped . '"';
     }
 }

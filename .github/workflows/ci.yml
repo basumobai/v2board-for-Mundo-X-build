@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: bcmath, curl, dom, fileinfo, gd, igbinary, intl, mbstring, pcntl, pdo_mysql, posix, redis, sockets, zip
+          coverage: none
+
+      - name: Validate Composer metadata
+        run: composer validate --no-check-publish
+
+      - name: Install locked dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Check PHP platform requirements
+        run: composer check-platform-reqs
+
+      - name: Lint PHP sources
+        run: find app config routes tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Run unit tests
+        run: vendor/bin/phpunit --testsuite Unit
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the PHP runtime image
+        run: docker compose build web
+
+      - name: Verify runtime extensions and OPcache policy
+        run: |
+          docker compose run --rm --no-deps web php -c cli-php.ini -r '
+          $required = ["bcmath", "curl", "gd", "igbinary", "intl", "mbstring", "pcntl", "pdo_mysql", "posix", "redis", "sockets", "zip"];
+          $missing = array_values(array_filter($required, static function ($extension) {
+              return !extension_loaded($extension);
+          }));
+          if ($missing) {
+              fwrite(STDERR, "Missing extensions: " . implode(", ", $missing) . PHP_EOL);
+              exit(1);
+          }
+          if (ini_get("opcache.validate_timestamps") !== "1"
+              || ini_get("opcache.revalidate_freq") !== "0"
+              || ini_get("opcache.enable_file_override") !== "0") {
+              fwrite(STDERR, "Unexpected OPcache policy" . PHP_EOL);
+              exit(1);
+          }
+          echo "Container runtime checks passed" . PHP_EOL;
+          '
