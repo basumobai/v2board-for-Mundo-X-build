@@ -15,3 +15,10 @@ test('admin payment compatibility remains intact after TLS bundle update', () =>
   assert.match(adminBundle, /MGate/);
   assert.match(adminBundle, /Paytaro/);
 });
+
+test('trusted XFF input is only rendered for supported transports', () => {
+  assert.match(
+    adminBundle,
+    /e\.network != null && \(e\.network == "xhttp" \|\| e\.network == "ws" \|\| e\.network == "grpc"\) && y\.a\.createElement\("div", \{\s+className: "form-group"\s+\}, y\.a\.createElement\("label", null, "\\u4fe1\\u4efb\\u7684XFF/,
+  );
+});
