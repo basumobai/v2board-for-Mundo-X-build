@@ -49,7 +49,7 @@ jobs:
           COMPOSE_PROJECT_NAME=panel-b WEB_PORT=16601 GATEWAY_PORT=17002 WEB_WORKERS=1 docker compose config --quiet
 
       - name: Validate installer guards and defaults
-        run: node --test tests/deployment.test.mjs
+        run: node --test tests/deployment.test.mjs tests/payment-assets.test.mjs
 
   container:
     runs-on: ubuntu-latest

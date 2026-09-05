@@ -20,6 +20,10 @@ Route::get('/healthz', function () {
     return response('ok', 200)->header('Cache-Control', 'no-store');
 });
 
+// Keep public PHP execution disabled while exposing the upstream Paytaro QR
+// page through the Laravel runtime in Docker and AdapterMan deployments.
+Route::get('/paytaro-qr/pay.php', 'V1\\Guest\\PaytaroQrController@handle');
+
 Route::get('/', function (Request $request) {
     if (config('v2board.app_url') && config('v2board.safe_mode_enable', 0)) {
         if ($request->server('HTTP_HOST') !== parse_url(config('v2board.app_url'))['host']) {
