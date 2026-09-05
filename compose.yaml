@@ -1,5 +1,14 @@
 x-v2board-image: &v2board-image
-  image: mundo-v2board-local:latest
+  image: "${COMPOSE_PROJECT_NAME:-mundo-v2board}-php:local"
+
+x-v2board-environment: &v2board-environment
+  docker: "true"
+  COMPOSE_PROJECT_NAME: "${COMPOSE_PROJECT_NAME:-mundo-v2board}"
+  WEB_PORT: "${WEB_PORT:-6600}"
+  GATEWAY_PORT: "${GATEWAY_PORT:-7001}"
+  WEB_WORKERS: "${WEB_WORKERS:-2}"
+  WEB_MAX_REQUESTS: "${WEB_MAX_REQUESTS:-6600}"
+  HORIZON_MAX_PROCESSES: "${HORIZON_MAX_PROCESSES:-4}"
 
 x-v2board-service: &v2board-service
   <<: *v2board-image
@@ -7,13 +16,18 @@ x-v2board-service: &v2board-service
   volumes:
     - redis-data:/data
     - ./:/www
-  environment:
-    docker: "true"
+  environment: *v2board-environment
   depends_on:
     redis:
       condition: service_healthy
   network_mode: host
   restart: unless-stopped
+  stop_grace_period: 90s
+  logging: &v2board-logging
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
 
 services:
   web:
@@ -26,7 +40,7 @@ services:
       test:
         - CMD-SHELL
         - >-
-          php -r '$socket = @fsockopen("127.0.0.1", 6600); exit($socket ? 0 : 1);'
+          php docker/healthcheck.php web
       interval: 5s
       timeout: 3s
       retries: 20
@@ -37,16 +51,33 @@ services:
     network_mode: host
     volumes:
       - ./:/www:ro
-      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx.conf:/etc/nginx/templates/default.conf.template:ro
       - ./docker/v2board-proxy-headers.inc:/etc/nginx/v2board-proxy-headers.inc:ro
+    environment:
+      WEB_PORT: "${WEB_PORT:-6600}"
+      GATEWAY_PORT: "${GATEWAY_PORT:-7001}"
+      # Only replace our ports, never Nginx's $uri / $host variables.
+      NGINX_ENVSUBST_FILTER: "^(WEB_PORT|GATEWAY_PORT)$$"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:$${GATEWAY_PORT}/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
     depends_on:
       web:
         condition: service_healthy
     restart: unless-stopped
+    logging: *v2board-logging
 
   horizon:
     <<: *v2board-service
     command: php artisan horizon
+    healthcheck:
+      test: ["CMD", "php", "artisan", "horizon:status"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
   scheduler:
     <<: *v2board-service
@@ -81,6 +112,18 @@ services:
     sysctls:
       net.core.somaxconn: 1024
     restart: unless-stopped
+    logging: *v2board-logging
+
+  # No Redis volume/dependency: a failed first-install preflight can be retried
+  # without creating or attaching another instance's persistent data.
+  installer:
+    <<: *v2board-image
+    profiles: ["tools"]
+    working_dir: /www
+    network_mode: host
+    volumes:
+      - ./:/www
+    environment: *v2board-environment
 
 volumes:
   redis-data:

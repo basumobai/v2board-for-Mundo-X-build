@@ -11,6 +11,7 @@
 .phpunit.result.cache
 .idea
 .lock
+.install.lock
 Homestead.json
 Homestead.yaml
 npm-debug.log

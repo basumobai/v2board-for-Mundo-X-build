@@ -7,6 +7,7 @@ use RuntimeException;
 class RuntimeConfigService
 {
     private static $workerReloadRequested = false;
+    private static $arrayFileCache = [];
 
     public function refreshV2boardConfig(): array
     {
@@ -61,18 +62,33 @@ class RuntimeConfigService
 
     private function loadArrayFile(string $path, array $fallback): array
     {
+        clearstatcache(true, $path);
         if (!is_file($path)) {
+            unset(self::$arrayFileCache[$path]);
             return $fallback;
         }
 
-        clearstatcache(true, $path);
+        // Content hashes detect atomic replacements AND same-second, same-size
+        // manual edits. Unchanged requests no longer invalidate shared OPcache
+        // or repeatedly evaluate the PHP configuration file.
+        $hash = hash_file('sha256', $path);
+        $cached = self::$arrayFileCache[$path] ?? null;
+        if ($hash !== false && $cached !== null && $cached['hash'] === $hash) {
+            return $cached['config'];
+        }
         if (function_exists('opcache_invalidate')) {
             @opcache_invalidate($path, true);
         }
 
         $config = require $path;
-
-        return is_array($config) ? $config : $fallback;
+        if (!is_array($config)) {
+            unset(self::$arrayFileCache[$path]);
+            return $fallback;
+        }
+        if ($hash !== false) {
+            self::$arrayFileCache[$path] = ['hash' => $hash, 'config' => $config];
+        }
+        return $config;
     }
 
     private function writeArrayFile(string $path, array $config): void
@@ -108,6 +124,7 @@ class RuntimeConfigService
         }
 
         clearstatcache(true, $path);
+        unset(self::$arrayFileCache[$path]);
         if (function_exists('opcache_invalidate')) {
             @opcache_invalidate($path, true);
         }

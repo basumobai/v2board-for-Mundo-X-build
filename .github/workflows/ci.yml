@@ -32,7 +32,9 @@ jobs:
         run: composer check-platform-reqs
 
       - name: Lint PHP sources
-        run: find app config routes tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: |
+          find app config routes tests docker -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l webman.php
 
       - name: Run unit tests
         run: vendor/bin/phpunit --testsuite Unit
@@ -42,7 +44,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate Compose configuration
-        run: docker compose config --quiet
+        run: |
+          docker compose config --quiet
+          COMPOSE_PROJECT_NAME=panel-b WEB_PORT=16601 GATEWAY_PORT=17002 WEB_WORKERS=1 docker compose config --quiet
+
+      - name: Validate installer guards and defaults
+        run: node --test tests/deployment.test.mjs
 
   container:
     runs-on: ubuntu-latest
@@ -71,3 +78,7 @@ jobs:
           }
           echo "Container runtime checks passed" . PHP_EOL;
           '
+
+      - name: Test two complete installations and production queues
+        timeout-minutes: 15
+        run: bash tests/deployment-smoke.sh

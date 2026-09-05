@@ -1,10 +1,20 @@
 <?php
 
 use Illuminate\Support\Str;
-use Linfo\Linfo;
-
-$lInfo = new Linfo();
-$parser = $lInfo->getParser();
+// Do not size each panel from the entire host's RAM. Every instance owns its
+// explicit queue budget, including in the default production environment.
+$supervisors = [
+    'V2board' => [
+        'connection' => 'redis',
+        'queue' => ['order_handle', 'traffic_fetch', 'stat', 'send_email', 'send_email_mass', 'send_telegram'],
+        'balance' => 'auto',
+        // Per-queue minimum: 1 would force six workers despite a budget of four.
+        'minProcesses' => 0,
+        'maxProcesses' => max(1, min(128, (int)env('HORIZON_MAX_PROCESSES', 4))),
+        'tries' => 1,
+        'balanceCooldown' => 3,
+    ],
+];
 
 return [
 
@@ -169,26 +179,7 @@ return [
     */
 
     'environments' => [
-        'local' => [
-            'V2board' => [
-                'connection' => 'redis',
-                'queue' => [
-                    'order_handle',
-                    'traffic_fetch',
-                    'stat',
-                    'send_email',
-                    'send_email_mass',
-                    'send_telegram',
-                ],
-                'balance' => 'auto',
-                'minProcesses' => 1,
-                'maxProcesses' => min(
-                    (int)ceil($parser->getRam()['total'] / 1024 / 1024 / 1024 * 6),
-                    (int)env('HORIZON_MAX_PROCESSES', 128)
-                ),
-                'tries' => 1,
-                'balanceCooldown' => 3,
-            ],
-        ],
+        'production' => $supervisors,
+        'local' => $supervisors,
     ],
 ];

@@ -7,8 +7,10 @@
 本分支提供：
 
 - PHP 8.2、AdapterMan、Nginx、Redis、Horizon 和 Scheduler 的 Compose 配置；
-- 仅监听 `127.0.0.1:6600` 与 `127.0.0.1:7001` 的反向代理结构；
-- AdapterMan 常驻 Worker 下的动态配置与主题配置刷新；
+- 安装时自定义 Web / Nginx 端口与 Worker 数量，默认端口 6600 / 7001，仅监听本机；
+- 同机多实例的容器、镜像、Redis 数据卷和缓存前缀隔离；
+- AdapterMan 常驻 Worker 下按内容变化刷新的动态配置缓存；
+- production 环境队列配置、视图预编译、HTTP 健康检查与日志轮转；
 - V2Board 管理员令牌驱动的 Horizon 鉴权；
 - 数据库事务跨请求隔离；
 - Mundo X、VMess、VLESS、Shadowsocks 等节点复制修复；
@@ -18,22 +20,24 @@
 
 [阅读完整 Docker 部署与排错指南](./How%20to%20build.md)
 
-最短流程：
+准备好本机 Docker / Compose 2.20+ 和一个空 MySQL 数据库后，执行：
 
 ```bash
 git clone https://github.com/basumobai/v2board-for-Mundo-X-build.git mundo-v2board
 cd mundo-v2board
 
-docker compose build --pull
-docker compose up -d --wait redis
-docker compose run --rm web composer install \
-  --no-dev --prefer-dist --optimize-autoloader --no-interaction
-docker compose run --rm web php artisan v2board:install
-docker compose run --rm web php artisan config:clear
-docker compose up -d
+bash init.sh
 ```
 
-安装前请先阅读完整指南。安装器会询问完整面板 URL、数据库参数和管理员邮箱，并且拒绝向非空数据库安装。V2Board 因此不是单纯执行一次 `docker compose up -d` 就能完成全新安装。
+按提示填写实例名、端口、资源参数、网址、数据库连接（包括端口）和管理员邮箱。脚本自动完成后显示后台地址、初始密码及宝塔反向代理目标。无需在宿主机安装 PHP / Composer，不用手工改 Compose 或 Nginx 配置。
+
+第二套面板使用另一个克隆目录和独立数据库，在运行安装器时选择不同的实例名和端口，也可以预设：
+
+```bash
+COMPOSE_PROJECT_NAME=panel-b WEB_PORT=6601 GATEWAY_PORT=7002 bash init.sh
+```
+
+安装器会检测冲突，拒绝重装已有站点。详细的 HTTPS、多实例、更新和失败恢复说明见上方部署指南。已有站点请先备份并使用更新流程，不要重新运行 init.sh。
 
 ## Mundo X
 
