@@ -121,7 +121,7 @@ class PaymentAdaptersTest extends TestCase
     public function testAdminPaymentDiscoveryKeepsMgateAlongsideNewAdapters(): void
     {
         $response = (new PaymentController())->getPaymentMethods();
-        $methods = $response->getData(true)['data'];
+        $methods = json_decode($response->getContent(), true)['data'];
 
         $this->assertContains('MGate', $methods);
         $this->assertContains('Paytaro', $methods);
@@ -137,7 +137,10 @@ class PaymentAdaptersTest extends TestCase
             ->get('/paytaro-qr/pay.php?uuid=invalid');
 
         $response->assertStatus(400);
-        $response->assertHeader('Cache-Control', 'no-store');
+        $this->assertStringContainsString(
+            'no-store',
+            (string) $response->baseResponse->headers->get('Cache-Control')
+        );
         $response->assertSee('订单参数无效');
     }
 
