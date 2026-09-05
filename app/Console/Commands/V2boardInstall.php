@@ -134,6 +134,14 @@ class V2boardInstall extends Command
             }
             fclose($envFile);
             chmod(base_path('.env'), 0600);
+            // The container may run as root while Docker Compose on the host
+            // runs as the checkout owner. Keep .env private AND readable by
+            // that owner without recursively chowning the user's repository.
+            $owner = fileowner(base_path());
+            if ($owner !== false && fileowner(base_path('.env')) !== $owner
+                && !@chown(base_path('.env'), $owner)) {
+                throw new RuntimeException('无法将 .env 交给项目目录所有者，未导入数据库');
+            }
             $template = file_get_contents(base_path('.env.example'));
             if ($template === false || file_put_contents(base_path('.env'), $template, LOCK_EX) === false) {
                 throw new RuntimeException('无法写入 .env 模板，未导入数据库');

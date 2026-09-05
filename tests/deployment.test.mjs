@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, copyFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const common = 'set -euo pipefail; source scripts/deploy-common.sh; ';
 const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
@@ -72,4 +74,32 @@ test('templates preserve Nginx variables and contain no fixed listen ports', () 
   assert.match(conf, /\$\{WEB_PORT\}/);
   assert.match(conf, /try_files \$uri @v2board/);
   assert.doesNotMatch(conf, /:6600|:7001/);
+});
+
+test('Composer cannot consume piped installation answers', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'mundo-stdin-test-'));
+  try {
+    mkdirSync(join(fixture, 'scripts'));
+    copyFileSync('init.sh', join(fixture, 'init.sh'));
+    copyFileSync('scripts/deploy-common.sh', join(fixture, 'scripts/deploy-common.sh'));
+    const result = spawnSync('bash', ['-c', `
+      docker() {
+        case "$*" in
+          'compose version --short') printf '2.39.0' ;;
+          'context inspect'*) printf 'unix:///var/run/docker.sock' ;;
+          *'composer install'*) command cat >/dev/null ;;
+          *'artisan v2board:install'*) IFS= read -r answer; printf 'ANSWER=%s\\n' "$answer" ;;
+        esac
+        return 0
+      }
+      ss() { return 0; }
+      export -f docker ss
+      bash init.sh
+    `], { cwd: fixture, input: 'https://panel.example.test\n', encoding: 'utf8', env: cleanEnv });
+    // The fake installer deliberately creates no .env, so finalization stops.
+    assert.match(result.stdout, /ANSWER=https:\/\/panel\.example\.test/);
+    assert.match(result.stderr, /安装器未生成完整配置/);
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
 });

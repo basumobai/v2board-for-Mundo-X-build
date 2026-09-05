@@ -3,13 +3,16 @@ set -euo pipefail
 
 # Run only on an ephemeral CI runner. Never test against a production checkout.
 [[ ${CI:-} == true && ! -e .env && ! -e config/v2board.php ]] || { echo 'Requires a fresh CI checkout'; exit 1; }
-repo_dir=$PWD
 test_dir=$(mktemp -d)
 test_suffix="${GITHUB_RUN_ID:-local}-$$"
 mysql_name="mundo-ci-mysql-$test_suffix"
 cleanup() {
+    local result=$?
     for panel in a b; do
         if [[ -f $test_dir/$panel/.env ]]; then
+            if (( result != 0 )); then
+                (cd "$test_dir/$panel" && docker compose logs --tail=100 web gateway horizon) || true
+            fi
             (cd "$test_dir/$panel" && docker compose down -v) || true
         fi
     done
@@ -21,7 +24,7 @@ docker run -d --name "$mysql_name" -e MYSQL_ROOT_PASSWORD=ci-only-password \
     -e MYSQL_ROOT_HOST=% -p 127.0.0.1::3306 mysql:8.0
 ready=false
 for ((i=0; i<90; i++)); do
-    if docker exec -e MYSQL_PWD=ci-only-password "$mysql_name" mysql -uroot -e 'SELECT 1' >/dev/null 2>&1; then ready=true; break; fi
+    if docker exec -e MYSQL_PWD=ci-only-password "$mysql_name" mysql --protocol=TCP -h127.0.0.1 -uroot -e 'SELECT 1' >/dev/null 2>&1; then ready=true; break; fi
     sleep 2
 done
 [[ $ready == true ]]
