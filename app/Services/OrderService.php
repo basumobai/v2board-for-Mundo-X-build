@@ -257,11 +257,23 @@ class OrderService
     public function paid(string $callbackNo)
     {
         $order = $this->order;
-        if ($order->status !== 0) return true;
+        $paidAt = time();
+        $affected = Order::where('id', $order->id)
+            ->where('status', 0)
+            ->update([
+                'status' => 1,
+                'paid_at' => $paidAt,
+                'callback_no' => $callbackNo
+            ]);
+
+        if ($affected !== 1) {
+            $status = Order::where('id', $order->id)->value('status');
+            return in_array((int) $status, [1, 3], true);
+        }
+
         $order->status = 1;
-        $order->paid_at = time();
+        $order->paid_at = $paidAt;
         $order->callback_no = $callbackNo;
-        if (!$order->save()) return false;
         try {
             OrderHandleJob::dispatch($order->trade_no);
         } catch (\Exception $e) {
@@ -274,8 +286,13 @@ class OrderService
     {
         $order = $this->order;
         DB::beginTransaction();
-        $order->status = 2;
-        if (!$order->save()) {
+        $affected = Order::where('id', $order->id)
+            ->where('status', 0)
+            ->update([
+                'status' => 2
+            ]);
+
+        if ($affected !== 1) {
             DB::rollBack();
             return false;
         }
@@ -287,6 +304,7 @@ class OrderService
             }
         }
         DB::commit();
+        $order->status = 2;
         return true;
     }
 

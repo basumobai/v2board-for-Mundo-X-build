@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
-          extensions: bcmath, curl, dom, fileinfo, gd, igbinary, intl, mbstring, pcntl, pdo_mysql, posix, redis, sockets, zip
+          extensions: bcmath, curl, dom, fileinfo, gd, igbinary, intl, mbstring, pcntl, pdo_mysql, pdo_sqlite, posix, redis, sockets, zip
           coverage: none
 
       - name: Validate Composer metadata
