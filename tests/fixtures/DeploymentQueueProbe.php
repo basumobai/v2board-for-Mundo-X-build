@@ -9,6 +9,6 @@ class DeploymentQueueProbe implements ShouldQueue
 {
     public function handle(): void
     {
-        file_put_contents(storage_path('app/deployment-queue-probe'), 'processed');
+        file_put_contents(storage_path('logs/deployment-queue-probe'), 'processed');
     }
 }

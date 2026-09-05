@@ -69,8 +69,8 @@ cp tests/fixtures/DeploymentQueueProbe.php "$test_dir/a/app/Jobs/DeploymentQueue
     '
 )
 for ((i=0; i<30; i++)); do
-    [[ -f $test_dir/a/storage/app/deployment-queue-probe ]] && break
+    [[ -f $test_dir/a/storage/logs/deployment-queue-probe ]] && break
     sleep 2
 done
-[[ -f $test_dir/a/storage/app/deployment-queue-probe && ! -f $test_dir/b/storage/app/deployment-queue-probe ]]
+[[ -f $test_dir/a/storage/logs/deployment-queue-probe && ! -f $test_dir/b/storage/logs/deployment-queue-probe ]]
 printf 'Two-instance install, HTTP, restart, Redis isolation and production queue checks passed.\n'
