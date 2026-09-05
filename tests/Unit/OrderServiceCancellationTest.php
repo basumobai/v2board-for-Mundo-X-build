@@ -43,6 +43,8 @@ class OrderServiceCancellationTest extends TestCase
             $table->unsignedInteger('user_id');
             $table->string('trade_no', 36)->unique();
             $table->string('callback_no')->nullable();
+            $table->unsignedTinyInteger('type')->default(1);
+            $table->integer('total_amount')->default(0);
             $table->integer('balance_amount')->nullable();
             $table->unsignedTinyInteger('status')->default(0);
             $table->integer('paid_at')->nullable();
@@ -51,6 +53,7 @@ class OrderServiceCancellationTest extends TestCase
         });
 
         Queue::fake();
+        config(['v2board.deposit_bounus' => []]);
     }
 
     protected function tearDown(): void
@@ -145,6 +148,35 @@ class OrderServiceCancellationTest extends TestCase
         [$user, $order] = $this->createOrder(2, 250);
 
         $this->assertFalse((new OrderService($order))->cancel());
+
+        $this->assertSame(2, (int) $order->fresh()->status);
+        $this->assertSame(1000, (int) $user->fresh()->balance);
+    }
+
+    public function testDuplicateFulfilmentJobsCannotCreditADepositTwice(): void
+    {
+        [$user, $order] = $this->createOrder(1, 0);
+        $order->type = 9;
+        $order->total_amount = 500;
+        $order->save();
+        $firstJob = Order::findOrFail($order->id);
+        $duplicateJob = Order::findOrFail($order->id);
+
+        $this->assertTrue((new OrderService($firstJob))->open());
+        $this->assertTrue((new OrderService($duplicateJob))->open());
+
+        $this->assertSame(3, (int) $order->fresh()->status);
+        $this->assertSame(1500, (int) $user->fresh()->balance);
+    }
+
+    public function testCancelledOrderCannotBeFulfilledByAStaleJob(): void
+    {
+        [$user, $order] = $this->createOrder(2, 0);
+        $order->type = 9;
+        $order->total_amount = 500;
+        $order->save();
+
+        $this->assertFalse((new OrderService($order))->open());
 
         $this->assertSame(2, (int) $order->fresh()->status);
         $this->assertSame(1000, (int) $user->fresh()->balance);
