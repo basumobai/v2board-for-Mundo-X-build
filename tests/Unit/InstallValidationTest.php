@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Console\Commands\V2boardInstall;
 use Dotenv\Dotenv;
+use Laravel\Horizon\ProvisioningPlan;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
@@ -43,15 +44,40 @@ class InstallValidationTest extends TestCase
         }
     }
 
-    public function testProductionHasBoundedQueueWorkers(): void
+    /** @dataProvider workerBudgets */
+    public function testProductionHasBoundedQueueWorkers(int $budget): void
     {
-        $horizon = require dirname(__DIR__, 2) . '/config/horizon.php';
+        $oldEnv = $_ENV['HORIZON_MAX_PROCESSES'] ?? null;
+        $oldServer = $_SERVER['HORIZON_MAX_PROCESSES'] ?? null;
+        $_ENV['HORIZON_MAX_PROCESSES'] = $_SERVER['HORIZON_MAX_PROCESSES'] = (string)$budget;
+        try {
+            $horizon = require dirname(__DIR__, 2) . '/config/horizon.php';
+        } finally {
+            unset($_ENV['HORIZON_MAX_PROCESSES'], $_SERVER['HORIZON_MAX_PROCESSES']);
+            if ($oldEnv !== null) $_ENV['HORIZON_MAX_PROCESSES'] = $oldEnv;
+            if ($oldServer !== null) $_SERVER['HORIZON_MAX_PROCESSES'] = $oldServer;
+        }
         $this->assertSame($horizon['environments']['local'], $horizon['environments']['production']);
-        $supervisor = $horizon['environments']['production']['V2board'];
-        $this->assertContains('traffic_fetch', $supervisor['queue']);
-        $this->assertContains('stat', $supervisor['queue']);
-        $this->assertSame(0, $supervisor['minProcesses']);
-        $this->assertGreaterThanOrEqual(1, $supervisor['maxProcesses']);
-        $this->assertLessThanOrEqual(128, $supervisor['maxProcesses']);
+        // Exercise the locked Horizon version's real validation and pool mode.
+        $plan = new ProvisioningPlan('deployment-test', $horizon['environments']);
+        $total = 0;
+        $queues = [];
+        foreach ($horizon['environments']['production'] as $name => $supervisor) {
+            $options = $plan->optionsFor('production', $name);
+            $this->assertFalse($options->balancing());
+            $this->assertGreaterThanOrEqual(1, $options->minProcesses);
+            $total += $options->maxProcesses;
+            $queues = array_merge($queues, explode(',', $options->queue));
+        }
+        $this->assertSame($budget, $total);
+        $this->assertEqualsCanonicalizing(
+            ['order_handle', 'traffic_fetch', 'stat', 'send_email', 'send_email_mass', 'send_telegram'],
+            $queues
+        );
+    }
+
+    public function workerBudgets(): array
+    {
+        return [[1], [2], [4], [8], [128]];
     }
 }

@@ -81,14 +81,7 @@ services:
 
   scheduler:
     <<: *v2board-service
-    command:
-      - sh
-      - -lc
-      - |
-        while true; do
-          php artisan schedule:run --no-interaction
-          sleep 60
-        done
+    command: ["sh", "docker/scheduler.sh"]
 
   redis:
     image: redis:7-alpine

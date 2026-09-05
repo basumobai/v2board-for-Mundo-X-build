@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { readFileSync, mkdtempSync, mkdirSync, copyFileSync, rmSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { readFileSync, mkdtempSync, mkdirSync, copyFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { once } from 'node:events';
+import { setTimeout as delay } from 'node:timers/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -17,7 +19,31 @@ const mocks = `docker() { return 0; }; ss() { return 0; }; `;
 
 test('shell syntax and help require no Docker installation', () => {
   assert.equal(spawnSync('bash', ['-n', 'init.sh', 'update.sh', 'scripts/deploy-common.sh']).status, 0);
+  assert.equal(spawnSync('sh', ['-n', 'docker/scheduler.sh']).status, 0);
   assert.equal(spawnSync('bash', ['init.sh', '--help']).status, 0);
+});
+test('idle scheduler exits promptly on Docker SIGTERM', async () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'mundo-scheduler-test-'));
+  const ready = join(fixture, 'ready');
+  writeFileSync(join(fixture, 'php'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  writeFileSync(join(fixture, 'sleep'), '#!/bin/sh\nprintf idle > "$SCHEDULER_READY"\nexec /bin/sleep 60\n', { mode: 0o755 });
+  const child = spawn('sh', ['docker/scheduler.sh'], {
+    detached: true, stdio: 'ignore',
+    env: { ...cleanEnv, PATH: `${fixture}:${cleanEnv.PATH}`, SCHEDULER_READY: ready },
+  });
+  try {
+    const deadline = Date.now() + 2000;
+    while (!existsSync(ready) && Date.now() < deadline) await delay(20);
+    assert.ok(existsSync(ready), 'scheduler did not enter its idle wait');
+    const exited = once(child, 'exit', { signal: AbortSignal.timeout(2000) });
+    child.kill('SIGTERM');
+    assert.deepEqual(await exited, [0, null]);
+  } finally {
+    try { process.kill(-child.pid, 'SIGKILL'); } catch (error) {
+      if (error.code !== 'ESRCH') throw error;
+    }
+    rmSync(fixture, { recursive: true, force: true });
+  }
 });
 test('custom values survive installer preflight', () => {
   const result = bash(mocks + 'prepare_deployment; printf "%s %s %s" "$WEB_PORT" "$GATEWAY_PORT" "$WEB_WORKERS"', {

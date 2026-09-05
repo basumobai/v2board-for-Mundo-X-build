@@ -1,20 +1,31 @@
 <?php
 
 use Illuminate\Support\Str;
+
 // Do not size each panel from the entire host's RAM. Every instance owns its
 // explicit queue budget, including in the default production environment.
+$workerBudget = max(1, min(128, (int)env('HORIZON_MAX_PROCESSES', 4)));
+$businessQueues = ['order_handle', 'traffic_fetch', 'stat'];
+$notificationQueues = ['send_email', 'send_email_mass', 'send_telegram'];
 $supervisors = [
     'V2board' => [
         'connection' => 'redis',
-        'queue' => ['order_handle', 'traffic_fetch', 'stat', 'send_email', 'send_email_mass', 'send_telegram'],
-        'balance' => 'auto',
-        // Per-queue minimum: 1 would force six workers despite a budget of four.
-        'minProcesses' => 0,
-        'maxProcesses' => max(1, min(128, (int)env('HORIZON_MAX_PROCESSES', 4))),
+        'queue' => $workerBudget === 1 ? array_merge($businessQueues, $notificationQueues) : $businessQueues,
+        // Horizon 5 requires minProcesses >= 1. Auto balancing creates a pool
+        // per queue, which would exceed small budgets. Share a fixed pool instead.
+        'balance' => false,
+        'minProcesses' => 1,
+        'maxProcesses' => max(1, $workerBudget - 1),
         'tries' => 1,
-        'balanceCooldown' => 3,
     ],
 ];
+if ($workerBudget > 1) {
+    // Reserve one worker so traffic backlogs cannot block notifications.
+    $supervisors['V2board-notifications'] = array_replace($supervisors['V2board'], [
+        'queue' => $notificationQueues,
+        'maxProcesses' => 1,
+    ]);
+}
 
 return [
 
