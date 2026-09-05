@@ -5,8 +5,8 @@ namespace Tests\Unit;
 use App\Console\Commands\V2boardInstall;
 use Dotenv\Dotenv;
 use Laravel\Horizon\ProvisioningPlan;
-use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use Tests\TestCase;
 
 class InstallValidationTest extends TestCase
 {
