@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
-          extensions: bcmath, curl, dom, fileinfo, gd, igbinary, intl, mbstring, pcntl, pdo_mysql, pdo_sqlite, posix, redis, sockets, zip
+          extensions: bcmath, curl, dom, fileinfo, gd, igbinary, intl, mbstring, openssl, pcntl, pdo_mysql, pdo_sqlite, posix, redis, sockets, zip
           coverage: none
 
       - name: Validate Composer metadata
@@ -49,7 +49,7 @@ jobs:
           COMPOSE_PROJECT_NAME=panel-b WEB_PORT=16601 GATEWAY_PORT=17002 WEB_WORKERS=1 docker compose config --quiet
 
       - name: Validate installer guards and defaults
-        run: node --test tests/deployment.test.mjs tests/payment-assets.test.mjs
+        run: node --test tests/deployment.test.mjs tests/payment-assets.test.mjs tests/tls-assets.test.mjs
 
   container:
     runs-on: ubuntu-latest
@@ -62,7 +62,7 @@ jobs:
       - name: Verify runtime extensions and OPcache policy
         run: |
           docker compose run --rm --no-deps web php -c cli-php.ini -r '
-          $required = ["bcmath", "curl", "gd", "igbinary", "intl", "mbstring", "pcntl", "pdo_mysql", "posix", "redis", "sockets", "zip"];
+          $required = ["bcmath", "curl", "gd", "igbinary", "intl", "mbstring", "openssl", "pcntl", "pdo_mysql", "posix", "redis", "sockets", "zip"];
           $missing = array_values(array_filter($required, static function ($extension) {
               return !extension_loaded($extension);
           }));

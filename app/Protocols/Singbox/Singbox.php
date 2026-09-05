@@ -9,11 +9,15 @@ class Singbox
     private $servers;
     private $user;
     private $config;
+    private $supportsCertificatePublicKeyPin = false;
 
     public function __construct($user, $servers, array $options = null)
     {
         $this->user = $user;
         $this->servers = $servers;
+        $version = ($options ?? [])['version'] ?? null;
+        $this->supportsCertificatePublicKeyPin = $version !== null
+            && version_compare($version, '1.13.0', '>=');
     }
 
     public function handle()
@@ -174,6 +178,7 @@ class Singbox
                     ];
                 }
             }
+            $this->addCertificatePublicKeyPin($tlsConfig, $tlsSettings);
             $array['tls'] = $tlsConfig;
         }
         if ($server['network'] === 'tcp') {
@@ -247,6 +252,7 @@ class Singbox
                     }
                 }
             }
+            $this->addCertificatePublicKeyPin($tlsConfig, $tlsSettings);
             $array['tls'] = $tlsConfig;
         }
 
@@ -306,6 +312,7 @@ class Singbox
                 ];
             }
         }
+        $this->addCertificatePublicKeyPin($tlsConfig, $tlsSettings);
         $array['tls'] = $tlsConfig;
 
         if(isset($server['network']) && in_array($server['network'], ["grpc", "ws"])){
@@ -352,6 +359,7 @@ class Singbox
             'disable_sni' => $server['disable_sni'] ? true : false,
         ];
         $array['tls']['server_name'] = $server['server_name'] ?? ($tlsSettings['server_name'] ?? '');
+        $this->addCertificatePublicKeyPin($array['tls'], $tlsSettings);
 
         return $array;
     }
@@ -389,6 +397,7 @@ class Singbox
                 "fingerprint" => $tlsSettings['fingerprint'] ?? 'chrome'
             ];
         }
+        $this->addCertificatePublicKeyPin($tlsConfig, $tlsSettings);
         $array['tls'] = $tlsConfig;
 
         if ($server['network'] === 'tcp') {
@@ -444,6 +453,7 @@ class Singbox
                 'server_name' => $server['server_name']
             ]
         ];
+        $this->addCertificatePublicKeyPin($array['tls'], $server['tls_settings'] ?? []);
 
         // 设置端口配置
         if (isset($port)) {
@@ -501,10 +511,22 @@ class Singbox
             'tag' => $server['name'],
             'type' => 'hysteria2'
         ];
+        $this->addCertificatePublicKeyPin($array['tls'], $tlsSettings);
         if (isset($server['obfs'])) {
             $array['obfs']['type'] = $server['obfs'];
             $array['obfs']['password'] = $server['obfs_password'];
         }
         return $array;
+    }
+
+    private function addCertificatePublicKeyPin(array &$tlsConfig, array $tlsSettings): void
+    {
+        if (!$this->supportsCertificatePublicKeyPin || empty($tlsSettings['certificate_public_key_sha256'])) {
+            return;
+        }
+
+        $tlsConfig['certificate_public_key_sha256'] = [
+            $tlsSettings['certificate_public_key_sha256'],
+        ];
     }
 }
