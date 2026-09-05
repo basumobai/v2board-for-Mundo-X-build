@@ -15,6 +15,11 @@ use Illuminate\Http\Request;
 |
 */
 
+// No credentials or diagnostics are exposed; probes avoid rendering the UI.
+Route::get('/healthz', function () {
+    return response('ok', 200)->header('Cache-Control', 'no-store');
+});
+
 Route::get('/', function (Request $request) {
     if (config('v2board.app_url') && config('v2board.safe_mode_enable', 0)) {
         if ($request->server('HTTP_HOST') !== parse_url(config('v2board.app_url'))['host']) {

@@ -1,0 +1,131 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { spawn, spawnSync } from 'node:child_process';
+import { readFileSync, mkdtempSync, mkdirSync, copyFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { once } from 'node:events';
+import { setTimeout as delay } from 'node:timers/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+const common = 'set -euo pipefail; source scripts/deploy-common.sh; ';
+const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
+  !/^(COMPOSE_|WEB_|GATEWAY_|HORIZON_|DOCKER_)/.test(key)));
+function bash(script, env = {}) {
+  return spawnSync('bash', ['-c', common + script], {
+    encoding: 'utf8', env: { ...cleanEnv, ...env },
+  });
+}
+const mocks = `docker() { return 0; }; ss() { return 0; }; `;
+
+test('shell syntax and help require no Docker installation', () => {
+  assert.equal(spawnSync('bash', ['-n', 'init.sh', 'update.sh', 'scripts/deploy-common.sh']).status, 0);
+  assert.equal(spawnSync('sh', ['-n', 'docker/scheduler.sh']).status, 0);
+  assert.equal(spawnSync('bash', ['init.sh', '--help']).status, 0);
+});
+test('idle scheduler exits promptly on Docker SIGTERM', async () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'mundo-scheduler-test-'));
+  const ready = join(fixture, 'ready');
+  writeFileSync(join(fixture, 'php'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  writeFileSync(join(fixture, 'sleep'), '#!/bin/sh\nprintf idle > "$SCHEDULER_READY"\nexec /bin/sleep 60\n', { mode: 0o755 });
+  const child = spawn('sh', ['docker/scheduler.sh'], {
+    detached: true, stdio: 'ignore',
+    env: { ...cleanEnv, PATH: `${fixture}:${cleanEnv.PATH}`, SCHEDULER_READY: ready },
+  });
+  try {
+    const deadline = Date.now() + 2000;
+    while (!existsSync(ready) && Date.now() < deadline) await delay(20);
+    assert.ok(existsSync(ready), 'scheduler did not enter its idle wait');
+    const exited = once(child, 'exit', { signal: AbortSignal.timeout(2000) });
+    child.kill('SIGTERM');
+    assert.deepEqual(await exited, [0, null]);
+  } finally {
+    try { process.kill(-child.pid, 'SIGKILL'); } catch (error) {
+      if (error.code !== 'ESRCH') throw error;
+    }
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+test('custom values survive installer preflight', () => {
+  const result = bash(mocks + 'prepare_deployment; printf "%s %s %s" "$WEB_PORT" "$GATEWAY_PORT" "$WEB_WORKERS"', {
+    COMPOSE_PROJECT_NAME: 'panel-b', WEB_PORT: '16601', GATEWAY_PORT: '17002', WEB_WORKERS: '3',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /16601 17002 3$/);
+});
+test('automatic defaults skip occupied and duplicate ports', () => {
+  const result = bash(`ss() { [[ $* == *:6600 || $* == *:7001 ]] && printf busy; return 0; }; available_port 6600; printf ' '; available_port 7001 7002`);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, '6601 7003');
+});
+for (const env of [
+  { WEB_PORT: '6600', GATEWAY_PORT: '6600' }, { WEB_PORT: '65536' },
+  { WEB_PORT: '01' }, { WEB_PORT: '1;touch sentinel' }, { WEB_WORKERS: '0' },
+  { COMPOSE_PROJECT_NAME: 'INVALID!' }, { HORIZON_MAX_PROCESSES: '0' },
+]) {
+  test(`unsafe settings rejected: ${JSON.stringify(env)}`, () => {
+    assert.notEqual(bash(mocks + 'prepare_deployment', { COMPOSE_PROJECT_NAME: 'panel-a', ...env }).status, 0);
+  });
+}
+test('occupied explicit port is rejected', () => {
+  const result = bash(`docker() { return 0; }; ss() { [[ $* == *:16600 ]] && printf busy; return 0; }; prepare_deployment`, {
+    COMPOSE_PROJECT_NAME: 'panel-a', WEB_PORT: '16600', GATEWAY_PORT: '17001',
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /已占用/);
+});
+for (const kind of ['container', 'volume', 'network']) {
+  test(`existing ${kind} cannot be adopted by a fresh install`, () => {
+    const result = bash(`ss() { return 0; }; docker() { [[ $1 == ${kind} ]] && printf existing; return 0; }; prepare_deployment`, {
+      COMPOSE_PROJECT_NAME: 'panel-a',
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /已有关联/);
+  });
+}
+test('Docker permission/connection failure stops preflight', () => {
+  const result = bash(`docker() { [[ $1 == compose ]] && printf '2.39.0' && return 0; return 1; }; require_docker`);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /无法访问 Docker/);
+});
+test('remote Docker context is rejected', () => {
+  const result = bash(`docker() { [[ $1 == compose ]] && printf '2.39.0'; return 0; }; require_docker`, {
+    DOCKER_HOST: 'tcp://example.test:2376',
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /不支持远程/);
+});
+test('templates preserve Nginx variables and contain no fixed listen ports', () => {
+  const conf = readFileSync('docker/nginx.conf', 'utf8');
+  assert.match(conf, /listen 127\.0\.0\.1:\$\{GATEWAY_PORT\}/);
+  assert.match(conf, /\$\{WEB_PORT\}/);
+  assert.match(conf, /try_files \$uri @v2board/);
+  assert.doesNotMatch(conf, /:6600|:7001/);
+});
+
+test('Composer cannot consume piped installation answers', () => {
+  const fixture = mkdtempSync(join(tmpdir(), 'mundo-stdin-test-'));
+  try {
+    mkdirSync(join(fixture, 'scripts'));
+    copyFileSync('init.sh', join(fixture, 'init.sh'));
+    copyFileSync('scripts/deploy-common.sh', join(fixture, 'scripts/deploy-common.sh'));
+    const result = spawnSync('bash', ['-c', `
+      docker() {
+        case "$*" in
+          'compose version --short') printf '2.39.0' ;;
+          'context inspect'*) printf 'unix:///var/run/docker.sock' ;;
+          *'composer install'*) command cat >/dev/null ;;
+          *'artisan v2board:install'*) IFS= read -r answer; printf 'ANSWER=%s\\n' "$answer" ;;
+        esac
+        return 0
+      }
+      ss() { return 0; }
+      export -f docker ss
+      bash init.sh
+    `], { cwd: fixture, input: 'https://panel.example.test\n', encoding: 'utf8', env: cleanEnv });
+    // The fake installer deliberately creates no .env, so finalization stops.
+    assert.match(result.stdout, /ANSWER=https:\/\/panel\.example\.test/);
+    assert.match(result.stderr, /安装器未生成完整配置/);
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
