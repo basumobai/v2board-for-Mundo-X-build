@@ -4,6 +4,7 @@ namespace App\Http\Controllers\V1\Admin\Server;
 
 use App\Http\Controllers\Controller;
 use App\Models\ServerV2node;
+use App\Services\TlsCertificateService;
 use Illuminate\Http\Request;
 use ParagonIE_Sodium_Compat as SodiumCompat;
 use App\Utils\Helper;
@@ -45,6 +46,13 @@ class V2nodeController extends Controller
             'show' => 'nullable|in:0,1',
             'sort' => 'nullable'
         ]);
+        $server = null;
+        if ($request->input('id')) {
+            $server = ServerV2node::find($request->input('id'));
+            if (!$server) {
+                abort(500, '服务器不存在');
+            }
+        }
         if ($params['protocol'] == 'anytls' && $params['tls'] === 0) {
             $params['tls'] = 1;
         }
@@ -81,6 +89,24 @@ class V2nodeController extends Controller
                         $params['tls_settings']['ech_config'] = $echPair['ech_config'];
                     }
                 }
+            }
+        }
+        if ((int)$params['tls'] === 1 && (($params['tls_settings']['cert_mode'] ?? null) === 'remote')) {
+            $params['tls_settings'] = $params['tls_settings'] ?? [];
+            $savedTlsSettings = $server ? ($server->tls_settings ?? []) : [];
+            foreach (['tls_cert', 'tls_key'] as $field) {
+                if (empty($params['tls_settings'][$field]) && !empty($savedTlsSettings[$field])) {
+                    $params['tls_settings'][$field] = $savedTlsSettings[$field];
+                }
+            }
+
+            try {
+                $params['tls_settings'] = (new TlsCertificateService())->ensureRemoteCertificate(
+                    $params['tls_settings'],
+                    (string)$params['host']
+                );
+            } catch (\RuntimeException $exception) {
+                abort(500, '远程 TLS 证书生成失败：' . $exception->getMessage());
             }
         }
         if (isset($params['network_settings'])) {
@@ -173,10 +199,6 @@ class V2nodeController extends Controller
         }
 
         if ($request->input('id')) {
-            $server = ServerV2node::find($request->input('id'));
-            if (!$server) {
-                abort(500, '服务器不存在');
-            }
             try {
                 $server->update($params);
             } catch (\Exception $e) {

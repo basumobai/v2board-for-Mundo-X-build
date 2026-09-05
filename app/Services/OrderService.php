@@ -26,79 +26,90 @@ class OrderService
         $this->order = $order;
     }
 
-    public function open()
+    public function open(): bool
     {
-        $order = $this->order;
-        $this->user = User::find($order->user_id);
-        if ($order->type == 9) {
-            DB::beginTransaction();
-            $this->user->balance += $order->total_amount + $this->getbounus($order->total_amount);
-
-            if (!$this->user->save()) {
-                DB::rollBack();
-                abort(500, '充值失败');
+        return DB::transaction(function () {
+            $order = Order::where('id', $this->order->id)
+                ->lockForUpdate()
+                ->first();
+            if (!$order) {
+                return false;
             }
-            $order->status = 3;
-            if (!$order->save()) {
-                DB::rollBack();
-                abort(500, '充值失败');
+            if ((int)$order->status === 3) {
+                return true;
             }
-            DB::commit();
-            return;
-        }
+            if ((int)$order->status !== 1) {
+                return false;
+            }
 
-        $plan = Plan::find($order->plan_id);
+            $this->order = $order;
+            $this->user = User::where('id', $order->user_id)
+                ->lockForUpdate()
+                ->first();
+            if (!$this->user) {
+                abort(500, '用户不存在');
+            }
 
-        if ($order->refund_amount) {
-            $this->user->balance = $this->user->balance + $order->refund_amount;
-        }
-        DB::beginTransaction();
-        if ($order->surplus_order_ids) {
-            try {
+            if ((int)$order->type === 9) {
+                $this->user->balance += $order->total_amount + $this->getbounus($order->total_amount);
+                if (!$this->user->save()) {
+                    abort(500, '充值失败');
+                }
+                $order->status = 3;
+                if (!$order->save()) {
+                    abort(500, '充值失败');
+                }
+                return true;
+            }
+
+            $plan = Plan::find($order->plan_id);
+            if (!$plan) {
+                abort(500, '订阅计划不存在');
+            }
+
+            if ($order->refund_amount) {
+                $this->user->balance += $order->refund_amount;
+            }
+            if ($order->surplus_order_ids) {
                 Order::whereIn('id', $order->surplus_order_ids)->update([
                     'status' => 4
                 ]);
-            } catch (\Exception $e) {
-                DB::rollback();
+            }
+            switch ((string)$order->period) {
+                case 'onetime_price':
+                    $this->buyByOneTime($order, $plan);
+                    break;
+                case 'reset_price':
+                    $this->buyByResetTraffic();
+                    break;
+                default:
+                    $this->buyByPeriod($order, $plan);
+            }
+
+            switch ((int)$order->type) {
+                case 1:
+                    $this->openEvent(config('v2board.new_order_event_id', 0));
+                    break;
+                case 2:
+                    $this->openEvent(config('v2board.renew_order_event_id', 0));
+                    break;
+                case 3:
+                    $this->openEvent(config('v2board.change_order_event_id', 0));
+                    break;
+            }
+
+            $this->setSpeedLimit($plan->speed_limit);
+
+            if (!$this->user->save()) {
                 abort(500, '开通失败');
             }
-        }
-        switch ((string)$order->period) {
-            case 'onetime_price':
-                $this->buyByOneTime($order, $plan);
-                break;
-            case 'reset_price':
-                $this->buyByResetTraffic();
-                break;
-            default:
-                $this->buyByPeriod($order, $plan);
-        }
+            $order->status = 3;
+            if (!$order->save()) {
+                abort(500, '开通失败');
+            }
 
-        switch ((int)$order->type) {
-            case 1:
-                $this->openEvent(config('v2board.new_order_event_id', 0));
-                break;
-            case 2:
-                $this->openEvent(config('v2board.renew_order_event_id', 0));
-                break;
-            case 3:
-                $this->openEvent(config('v2board.change_order_event_id', 0));
-                break;
-        }
-
-        $this->setSpeedLimit($plan->speed_limit);
-
-        if (!$this->user->save()) {
-            DB::rollBack();
-            abort(500, '开通失败');
-        }
-        $order->status = 3;
-        if (!$order->save()) {
-            DB::rollBack();
-            abort(500, '开通失败');
-        }
-
-        DB::commit();
+            return true;
+        }, 3);
     }
 
 
@@ -257,11 +268,23 @@ class OrderService
     public function paid(string $callbackNo)
     {
         $order = $this->order;
-        if ($order->status !== 0) return true;
+        $paidAt = time();
+        $affected = Order::where('id', $order->id)
+            ->where('status', 0)
+            ->update([
+                'status' => 1,
+                'paid_at' => $paidAt,
+                'callback_no' => $callbackNo
+            ]);
+
+        if ($affected !== 1) {
+            $status = Order::where('id', $order->id)->value('status');
+            return in_array((int) $status, [1, 3], true);
+        }
+
         $order->status = 1;
-        $order->paid_at = time();
+        $order->paid_at = $paidAt;
         $order->callback_no = $callbackNo;
-        if (!$order->save()) return false;
         try {
             OrderHandleJob::dispatch($order->trade_no);
         } catch (\Exception $e) {
@@ -274,8 +297,13 @@ class OrderService
     {
         $order = $this->order;
         DB::beginTransaction();
-        $order->status = 2;
-        if (!$order->save()) {
+        $affected = Order::where('id', $order->id)
+            ->where('status', 0)
+            ->update([
+                'status' => 2
+            ]);
+
+        if ($affected !== 1) {
             DB::rollBack();
             return false;
         }
@@ -287,6 +315,7 @@ class OrderService
             }
         }
         DB::commit();
+        $order->status = 2;
         return true;
     }
 

@@ -20,6 +20,18 @@ use Illuminate\Support\Facades\Cache;
 
 class ServerService
 {
+    public static function sanitizeTlsSettingsForSubscription(array $tlsSettings): array
+    {
+        unset(
+            $tlsSettings['private_key'],
+            $tlsSettings['ech_key'],
+            $tlsSettings['tls_key'],
+            $tlsSettings['tls_cert']
+        );
+
+        return $tlsSettings;
+    }
+
     public function getAvailableVless(User $user): array
     {
         $servers = [];
@@ -38,12 +50,7 @@ class ServerService
                 $server[$key]['last_check_at'] = Cache::get(CacheKey::get('SERVER_VLESS_LAST_CHECK_AT', $server[$key]['id']));
             }
             if (isset($server[$key]['tls_settings'])) {
-                $server[$key]['tls_settings'] = array_diff_key(
-                    $server[$key]['tls_settings'],
-                    array_flip(array_filter(['private_key', 'ech_key'], function($k) use ($server, $key) {
-                        return isset($server[$key]['tls_settings'][$k]);
-                    }))
-                );
+                $server[$key]['tls_settings'] = self::sanitizeTlsSettingsForSubscription($server[$key]['tls_settings']);
             }
             if (isset($server[$key]['encryption_settings'])) {
                 if (isset($server[$key]['encryption_settings']['private_key'])) {
@@ -209,12 +216,7 @@ class ServerService
                 $mx[$key]['created_at'] = $mx[$v['parent_id']]['created_at'];
             }
             if (isset($mx[$key]['tls_settings'])) {
-                $mx[$key]['tls_settings'] = array_diff_key(
-                    $mx[$key]['tls_settings'],
-                    array_flip(array_filter(['private_key', 'ech_key'], function($k) use ($mx, $key) {
-                        return isset($mx[$key]['tls_settings'][$k]);
-                    }))
-                );
+                $mx[$key]['tls_settings'] = self::sanitizeTlsSettingsForSubscription($mx[$key]['tls_settings']);
             }
             $servers[] = $mx[$key]->toArray();
         }
@@ -236,12 +238,7 @@ class ServerService
                 $v2node[$key]['created_at'] = $v2node[$v['parent_id']]['created_at'];
             }
             if (isset($v2node[$key]['tls_settings'])) {
-                $v2node[$key]['tls_settings'] = array_diff_key(
-                    $v2node[$key]['tls_settings'],
-                    array_flip(array_filter(['private_key', 'ech_key'], function($k) use ($v2node, $key) {
-                        return isset($v2node[$key]['tls_settings'][$k]);
-                    }))
-                );
+                $v2node[$key]['tls_settings'] = self::sanitizeTlsSettingsForSubscription($v2node[$key]['tls_settings']);
             }
             if (isset($v2node[$key]['encryption_settings'])) {
                 if (isset($v2node[$key]['encryption_settings']['private_key'])) {
