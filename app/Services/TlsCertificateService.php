@@ -47,8 +47,11 @@ class TlsCertificateService
         $certificateDer = $this->pemToDer($certificatePem, 'CERTIFICATE');
         $publicKeyDer = $this->pemToDer($publicKeyDetails['key'], 'PUBLIC KEY');
 
-        $tlsSettings['tls_cert'] = $certificatePem . "\n";
-        $tlsSettings['tls_key'] = $privateKeyPem . "\n";
+        // OpenSSL export includes a trailing newline, while certificates loaded
+        // from persisted settings may not. Normalize both paths so an unchanged
+        // key pair does not produce a noisy settings update on every save.
+        $tlsSettings['tls_cert'] = rtrim($certificatePem) . "\n";
+        $tlsSettings['tls_key'] = rtrim($privateKeyPem) . "\n";
         // Xray URI `pcs`: SHA-256 of the complete certificate DER, as hex.
         $tlsSettings['pinned_peer_cert_sha256'] = hash('sha256', $certificateDer);
         // sing-box 1.13+: SHA-256 of SubjectPublicKeyInfo DER, as base64.
