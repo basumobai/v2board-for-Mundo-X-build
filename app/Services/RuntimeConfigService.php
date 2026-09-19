@@ -73,7 +73,11 @@ class RuntimeConfigService
         // long-lived worker no longer reads and hashes the file on every
         // request. The one-second bound is deliberately short because admin
         // settings are expected to become visible without a worker restart.
-        if ($cached !== null && ($now - $lastCheckAt) < self::FILE_HASH_CHECK_INTERVAL) {
+        // The production AdapterMan worker already has an explicit reload
+        // path; throttle only that hot request path. CLI and test callers keep
+        // the original immediate same-size edit detection semantics.
+        $throttle = defined('isWEBMAN') && isWEBMAN;
+        if ($throttle && $cached !== null && ($now - $lastCheckAt) < self::FILE_HASH_CHECK_INTERVAL) {
             return $cached['config'];
         }
 
