@@ -65,8 +65,9 @@ class StatisticalService {
             ->where('created_at', '<', $endAt)
             ->selectRaw('COUNT(*) AS aggregate_count, SUM(invite_user_id IS NOT NULL) AS invite_count')
             ->first();
-        $transferUsed = StatServer::where('created_at', '>=', $startAt)
-            ->where('created_at', '<', $endAt)
+        $transferUsed = StatServer::where('record_type', 'd')
+            ->where('record_at', '>=', $startAt)
+            ->where('record_at', '<', $endAt)
             ->selectRaw('COALESCE(SUM(u), 0) + COALESCE(SUM(d), 0) AS total')
             ->value('total');
 

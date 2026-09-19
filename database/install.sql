@@ -641,7 +641,6 @@ CREATE TABLE `v2_user` (
                            KEY `idx_group_access` (`group_id`,`banned`,`expired_at`,`id`),
                            KEY `idx_auto_renewal` (`auto_renewal`,`expired_at`,`id`),
                            KEY `idx_last_traffic` (`t`),
-                           KEY `idx_created_at` (`created_at`),
                            KEY `idx_created_invite` (`created_at`,`invite_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

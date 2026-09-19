@@ -912,5 +912,4 @@ ALTER TABLE `v2_ticket` ADD INDEX `idx_autoclose` (`status`, `reply_status`, `up
 ALTER TABLE `v2_user` ADD INDEX `idx_group_access` (`group_id`, `banned`, `expired_at`, `id`);
 ALTER TABLE `v2_user` ADD INDEX `idx_auto_renewal` (`auto_renewal`, `expired_at`, `id`);
 ALTER TABLE `v2_user` ADD INDEX `idx_last_traffic` (`t`);
-ALTER TABLE `v2_user` ADD INDEX `idx_created_at` (`created_at`);
 ALTER TABLE `v2_user` ADD INDEX `idx_created_invite` (`created_at`, `invite_user_id`);

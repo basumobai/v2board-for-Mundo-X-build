@@ -33,6 +33,13 @@ class TrafficFetchJob implements ShouldQueue
         $this->data = $this->normalizeData($data);
         $this->serverId = (int)($server['id'] ?? 0);
         $this->serverRate = $this->normalizeRate($server['rate'] ?? 1);
+        // Keep only the fields understood by workers from the previous
+        // release. This preserves rolling-deploy compatibility without
+        // serializing the full server model into every queue payload.
+        $this->server = [
+            'id' => $this->serverId,
+            'rate' => $this->serverRate
+        ];
         $this->protocol = (string)$protocol;
         $this->reportId = bin2hex(random_bytes(16));
         $this->reportedAt = time();
@@ -71,7 +78,12 @@ class TrafficFetchJob implements ShouldQueue
             $arguments[] = (int)round($trafficData[1] * $this->serverRate);
         }
 
-        $dedupeKey = 'v2board_traffic_reports:' . gmdate('YmdH', $this->reportedAt);
+        // Legacy payloads do not contain a stable report timestamp. Keep
+        // their IDs in one short-lived migration set so a retry that crosses
+        // an hour boundary cannot increment Redis twice.
+        $dedupeKey = $this->consolidated
+            ? 'v2board_traffic_reports:' . gmdate('YmdH', $this->reportedAt)
+            : 'v2board_traffic_reports:legacy';
         $script = <<<'LUA'
 if redis.call('SISMEMBER', KEYS[1], ARGV[1]) == 1 then
     return 0

@@ -17,6 +17,8 @@ class PerformanceArchitectureTest extends TestCase
         $this->assertStringNotContainsString('StatServerJob::dispatch', $userService);
         $this->assertStringContainsString("DB::table('v2_node_report')->insertOrIgnore", $trafficJob);
         $this->assertStringContainsString("redis.call('SISMEMBER'", $trafficJob);
+        $this->assertStringContainsString("'v2board_traffic_reports:legacy'", $trafficJob);
+        $this->assertStringContainsString('$this->server = [', $trafficJob);
         $this->assertStringContainsString("redis.call('RENAME'", $trafficUpdate);
         $this->assertStringContainsString("DB::table('v2_traffic_batch')->insertOrIgnore", $trafficUpdate);
         $this->assertStringNotContainsString("ini_set('memory_limit', -1)", $trafficUpdate);
@@ -46,6 +48,32 @@ class PerformanceArchitectureTest extends TestCase
         $this->assertStringContainsString('60 - now % 60', $scheduler);
         $this->assertStringNotContainsString("ini_set('memory_limit', -1)", $resetTraffic);
         $this->assertStringContainsString('chunkById(500', $resetTraffic);
+    }
+
+    public function testRemainingBulkAndStatisticsPathsUseBoundedIndexedWork(): void
+    {
+        $resetUser = $this->read('app/Console/Commands/ResetUser.php');
+        $statistics = $this->read('app/Services/StatisticalService.php');
+
+        $this->assertStringNotContainsString("ini_set('memory_limit', -1)", $resetUser);
+        $this->assertStringNotContainsString('User::all()', $resetUser);
+        $this->assertStringContainsString('chunkById(500', $resetUser);
+        $this->assertStringNotContainsString("StatServer::where('created_at'", $statistics);
+        $this->assertStringContainsString("StatServer::where('record_type', 'd')", $statistics);
+    }
+
+    public function testLegacyNodeUserEndpointsCacheSerializedPayloads(): void
+    {
+        foreach ([
+            'app/Http/Controllers/V1/Server/TrojanTidalabController.php',
+            'app/Http/Controllers/V1/Server/ShadowsocksTidalabController.php',
+            'app/Http/Controllers/V1/Server/DeepbworkController.php'
+        ] as $path) {
+            $controller = $this->read($path);
+            $this->assertStringNotContainsString("ini_set('memory_limit', -1)", $controller, $path);
+            $this->assertStringContainsString('SERVER_LEGACY_USER_PAYLOAD:', $controller, $path);
+            $this->assertStringContainsString('Cache::remember', $controller, $path);
+        }
     }
 
     private function read(string $path): string

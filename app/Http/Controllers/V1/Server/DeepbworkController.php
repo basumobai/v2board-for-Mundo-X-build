@@ -33,34 +33,48 @@ class DeepbworkController extends Controller
     // 后端获取用户
     public function user(Request $request)
     {
-        ini_set('memory_limit', -1);
         $nodeId = $request->input('node_id');
         $server = ServerVmess::find($nodeId);
         if (!$server) {
             abort(500, 'fail');
         }
         Cache::put(CacheKey::get('SERVER_VMESS_LAST_CHECK_AT', $server->id), time(), 3600);
-        $serverService = new ServerService();
-        $users = $serverService->getAvailableUsers($server->group_id);
-        $result = [];
-        foreach ($users as $user) {
-            $user->v2ray_user = [
-                "uuid" => $user->uuid,
-                "email" => sprintf("%s@v2board.user", $user->uuid),
-                "alter_id" => 0,
-                "level" => 0,
+        $cacheKey = 'SERVER_LEGACY_USER_PAYLOAD:' . sha1(json_encode([
+            'vmess',
+            (int)$server->id,
+            (int)$server->updated_at,
+            $server->group_id
+        ]));
+        $payload = Cache::remember($cacheKey, 15, function () use ($server) {
+            $users = (new ServerService())->getAvailableUsers($server->group_id);
+            $result = [];
+            foreach ($users as $user) {
+                $user->v2ray_user = [
+                    'uuid' => $user->uuid,
+                    'email' => sprintf('%s@v2board.user', $user->uuid),
+                    'alter_id' => 0,
+                    'level' => 0,
+                ];
+                unset($user['uuid']);
+                $result[] = $user->toArray();
+            }
+            $body = json_encode([
+                'msg' => 'ok',
+                'data' => $result
+            ]);
+
+            return [
+                'body' => $body,
+                'etag' => sha1($body)
             ];
-            unset($user['uuid']);
-            array_push($result, $user);
+        });
+
+        if (strpos((string)$request->header('If-None-Match'), $payload['etag']) !== false) {
+            return response('', 304)->header('ETag', '"' . $payload['etag'] . '"');
         }
-        $eTag = sha1(json_encode($result));
-        if (strpos($request->header('If-None-Match'), $eTag) !== false ) {
-            abort(304);
-        }
-        return response([
-            'msg' => 'ok',
-            'data' => $result,
-        ])->header('ETag', "\"{$eTag}\"");
+
+        return response($payload['body'], 200, ['Content-Type' => 'application/json'])
+            ->header('ETag', '"' . $payload['etag'] . '"');
     }
 
     // 后端提交数据
