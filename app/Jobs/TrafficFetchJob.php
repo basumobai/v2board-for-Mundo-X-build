@@ -19,29 +19,39 @@ class TrafficFetchJob implements ShouldQueue
     public $tries = 3;
     public $timeout = 10;
 
-    /**
-     * Create a new job instance.
-     *
-     * @return void
-     */
     public function __construct(array $data, array $server, $protocol)
     {
         $this->onQueue('traffic_fetch');
-        $this->data =$data;
+        $this->data = $data;
         $this->server = $server;
         $this->protocol = $protocol;
     }
 
     /**
-     * Execute the job.
-     *
-     * @return void
+     * Aggregate a node report with one Redis pipeline instead of one
+     * network round trip per user.
      */
     public function handle()
     {
-        foreach(array_keys($this->data) as $userId){
-            Redis::hincrby('v2board_upload_traffic', $userId, $this->data[$userId][0] * $this->server['rate']);
-            Redis::hincrby('v2board_download_traffic', $userId, $this->data[$userId][1] * $this->server['rate']);
-        }
+        $rate = (float)($this->server['rate'] ?? 1);
+
+        Redis::pipeline(function ($pipe) use ($rate) {
+            foreach ($this->data as $userId => $trafficData) {
+                if (!is_numeric($userId) || !is_array($trafficData)
+                    || !isset($trafficData[0], $trafficData[1])) {
+                    continue;
+                }
+
+                $upload = (int)round((float)$trafficData[0] * $rate);
+                $download = (int)round((float)$trafficData[1] * $rate);
+
+                if ($upload !== 0) {
+                    $pipe->hincrby('v2board_upload_traffic', (string)$userId, $upload);
+                }
+                if ($download !== 0) {
+                    $pipe->hincrby('v2board_download_traffic', (string)$userId, $download);
+                }
+            }
+        });
     }
 }
