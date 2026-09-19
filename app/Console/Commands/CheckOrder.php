@@ -8,43 +8,28 @@ use App\Models\Order;
 
 class CheckOrder extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'check:order';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
     protected $description = '订单检查任务';
 
-    /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
-    /**
-     * Execute the console command.
-     *
-     * @return mixed
-     */
     public function handle()
     {
-        ini_set('memory_limit', -1);
-        $orders = Order::whereIn('status', [0, 1])
-            ->orderBy('created_at', 'ASC')
-            ->get();
-        foreach ($orders as $order) {
-            OrderHandleJob::dispatch($order->trade_no);
-        }
+        $now = time();
+
+        // Unpaid orders do not need a queue attempt until they have expired.
+        // Select only the trade number and stream in bounded chunks.
+        Order::where(function ($query) use ($now) {
+            $query->where('status', 1)
+                ->orWhere(function ($query) use ($now) {
+                    $query->where('status', 0)
+                        ->where('created_at', '<=', $now - 2 * 3600);
+                });
+        })
+            ->select(['id', 'trade_no'])
+            ->orderBy('id')
+            ->chunkById(500, function ($orders) {
+                foreach ($orders as $order) {
+                    OrderHandleJob::dispatch($order->trade_no);
+                }
+            });
     }
 }
