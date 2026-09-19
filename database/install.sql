@@ -29,7 +29,9 @@ CREATE TABLE `v2_commission_log` (
                                      `get_amount` int(11) NOT NULL,
                                      `created_at` int(11) NOT NULL,
                                      `updated_at` int(11) NOT NULL,
-                                     PRIMARY KEY (`id`)
+                                     PRIMARY KEY (`id`),
+                                     UNIQUE KEY `trade_inviter` (`trade_no`,`invite_user_id`),
+                                     KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -172,7 +174,11 @@ CREATE TABLE `v2_order` (
                             PRIMARY KEY (`id`),
                             UNIQUE KEY `trade_no` (`trade_no`),
                             INDEX idx_user (`user_id`),
-                            INDEX idx_user_status (`user_id`, `status`)
+                            INDEX idx_user_status (`user_id`, `status`),
+                            INDEX idx_status_created (`status`, `created_at`, `id`),
+                            INDEX idx_commission_queue (`commission_status`, `status`, `updated_at`, `id`),
+                            INDEX idx_created_status (`created_at`, `status`),
+                            INDEX idx_paid_status (`paid_at`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -507,6 +513,26 @@ CREATE TABLE `v2_stat` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='订单统计';
 
 
+DROP TABLE IF EXISTS `v2_node_report`;
+CREATE TABLE `v2_node_report` (
+                                  `report_id` char(32) NOT NULL,
+                                  `server_id` int(11) NOT NULL,
+                                  `server_type` char(11) NOT NULL,
+                                  `created_at` int(11) NOT NULL,
+                                  PRIMARY KEY (`report_id`),
+                                  KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='节点上报幂等记录';
+
+
+DROP TABLE IF EXISTS `v2_traffic_batch`;
+CREATE TABLE `v2_traffic_batch` (
+                                   `batch_id` char(32) NOT NULL,
+                                   `created_at` int(11) NOT NULL,
+                                   PRIMARY KEY (`batch_id`),
+                                   KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流量结算幂等记录';
+
+
 DROP TABLE IF EXISTS `v2_stat_server`;
 CREATE TABLE `v2_stat_server` (
                                   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -521,7 +547,8 @@ CREATE TABLE `v2_stat_server` (
                                   PRIMARY KEY (`id`),
                                   UNIQUE KEY `server_id_server_type_record_at` (`server_id`,`server_type`,`record_at`),
                                   KEY `record_at` (`record_at`),
-                                  KEY `server_id` (`server_id`)
+                                  KEY `server_id` (`server_id`),
+                                  KEY `idx_type_record` (`record_type`,`record_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='节点数据统计';
 
 
@@ -540,7 +567,8 @@ CREATE TABLE `v2_stat_user` (
                                 UNIQUE KEY `server_rate_user_id_record_at` (`server_rate`,`user_id`,`record_at`),
                                 KEY `user_id` (`user_id`),
                                 KEY `record_at` (`record_at`),
-                                KEY `server_rate` (`server_rate`)
+                                KEY `server_rate` (`server_rate`),
+                                KEY `idx_type_record_user` (`record_type`,`record_at`,`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -554,7 +582,8 @@ CREATE TABLE `v2_ticket` (
                              `reply_status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '0:待回复 1:已回复',
                              `created_at` int(11) NOT NULL,
                              `updated_at` int(11) NOT NULL,
-                             PRIMARY KEY (`id`)
+                             PRIMARY KEY (`id`),
+                             KEY `idx_autoclose` (`status`,`reply_status`,`updated_at`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -608,7 +637,12 @@ CREATE TABLE `v2_user` (
                            `updated_at` int(11) NOT NULL,
                            PRIMARY KEY (`id`),
                            UNIQUE KEY `email` (`email`),
-                           UNIQUE KEY `token` (`token`)
+                           UNIQUE KEY `token` (`token`),
+                           KEY `idx_group_access` (`group_id`,`banned`,`expired_at`,`id`),
+                           KEY `idx_auto_renewal` (`auto_renewal`,`expired_at`,`id`),
+                           KEY `idx_last_traffic` (`t`),
+                           KEY `idx_created_at` (`created_at`),
+                           KEY `idx_created_invite` (`created_at`,`invite_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 

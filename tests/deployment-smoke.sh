@@ -55,6 +55,15 @@ for panel in a b; do
     )
 done
 
+# Exercise traffic reporting against the real MySQL and Redis services while
+# the scheduler is paused so the assertions cannot race its minute job.
+(
+    cd "$test_dir/a"
+    docker compose stop scheduler
+    docker compose exec -T web php tests/fixtures/TrafficPipelineProbe.php
+    docker compose start scheduler
+)
+
 # Prove Redis volumes and production queue consumers are independent.
 (cd "$test_dir/a" && docker compose exec -T redis redis-cli -s /data/redis.sock SET deployment-probe panel-a)
 [[ $(cd "$test_dir/b" && docker compose exec -T redis redis-cli -s /data/redis.sock EXISTS deployment-probe) == 0 ]]

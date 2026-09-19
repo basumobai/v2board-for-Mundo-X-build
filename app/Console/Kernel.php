@@ -28,19 +28,19 @@ class Kernel extends ConsoleKernel
     {
         Cache::put(CacheKey::get('SCHEDULE_LAST_CHECK_AT', null), time());
         // traffic
-        $schedule->command('traffic:update')->everyMinute()->withoutOverlapping();
+        $schedule->command('traffic:update')->everyMinute()->withoutOverlapping(5);
         // v2board
-        $schedule->command('v2board:statistics')->dailyAt('0:10');
+        $schedule->command('v2board:statistics')->dailyAt('0:10')->withoutOverlapping(120);
         // check
-        $schedule->command('check:order')->everyMinute()->withoutOverlapping();
-        $schedule->command('check:commission')->everyFifteenMinutes();
-        $schedule->command('check:ticket')->everyMinute();
-        $schedule->command('check:renewal')->dailyAt('22:30');
+        $schedule->command('check:order')->everyMinute()->withoutOverlapping(5);
+        $schedule->command('check:commission')->everyFifteenMinutes()->withoutOverlapping(30);
+        $schedule->command('check:ticket')->everyMinute()->withoutOverlapping(5);
+        $schedule->command('check:renewal')->dailyAt('22:30')->withoutOverlapping(180);
         // reset
-        $schedule->command('reset:traffic')->daily();
-        $schedule->command('reset:log')->daily();
+        $schedule->command('reset:traffic')->daily()->withoutOverlapping(120);
+        $schedule->command('reset:log')->daily()->withoutOverlapping(120);
         // send
-        $schedule->command('send:remindMail')->dailyAt('11:30');
+        $schedule->command('send:remindMail')->dailyAt('11:30')->withoutOverlapping(120);
         // horizon metrics
         $schedule->command('horizon:snapshot')->everyFiveMinutes();
     }

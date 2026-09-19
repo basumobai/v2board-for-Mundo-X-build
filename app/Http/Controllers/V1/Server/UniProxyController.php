@@ -7,6 +7,7 @@ use App\Services\ServerService;
 use App\Services\UserService;
 use App\Utils\CacheKey;
 use App\Utils\Helper;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use MessagePack\Packer;
@@ -39,33 +40,37 @@ class UniProxyController extends Controller
     // 后端获取用户
     public function user(Request $request)
     {
-        ini_set('memory_limit', -1);
         Cache::put(CacheKey::get('SERVER_' . strtoupper($this->nodeType) . '_LAST_CHECK_AT', $this->nodeInfo->id), time(), 3600);
-        $users = $this->serverService->getAvailableUsers($this->nodeInfo->group_id)
-            ->map(function ($user) {
-                return array_filter($user->toArray(), function ($v) {
-                    return !is_null($v);
-                });
-            })->toArray();
 
-        $response['users'] = $users;
-        if (strpos($request->header('X-Response-Format'), 'msgpack') !== false) {
-            $packer = new Packer();
-            $response = $packer->pack($response);
-            $eTag = sha1($response);
-            if (strpos($request->header('If-None-Match'), $eTag) !== false) {
-                abort(304);
-            }
+        $messagePack = strpos((string)$request->header('X-Response-Format'), 'msgpack') !== false;
+        $groupIds = array_values(array_unique(array_map('intval', (array)$this->nodeInfo->group_id)));
+        sort($groupIds, SORT_NUMERIC);
+        $payloadKey = 'SERVER_USER_PAYLOAD:' . sha1(json_encode([$groupIds, $messagePack]));
+        $payload = Cache::remember($payloadKey, 15, function () use ($groupIds, $messagePack) {
+            $users = $this->serverService->getAvailableUsers($groupIds)
+                ->map(function ($user) {
+                    return array_filter($user->toArray(), function ($value) {
+                        return !is_null($value);
+                    });
+                })->toArray();
+            $response = ['users' => $users];
+            $body = $messagePack
+                ? (new Packer())->pack($response)
+                : json_encode($response);
 
-            return response($response, 200, ['Content-Type' => 'application/x-msgpack'])->header('ETag', "\"{$eTag}\"");
-        } else {
-            $eTag = sha1(json_encode($response));
-            if (strpos($request->header('If-None-Match'), $eTag) !== false) {
-                abort(304);
-            }
+            return [
+                'body' => $body,
+                'etag' => sha1($body)
+            ];
+        });
 
-            return response($response)->header('ETag', "\"{$eTag}\"");
+        if (strpos((string)$request->header('If-None-Match'), $payload['etag']) !== false) {
+            return response('', 304)->header('ETag', '"' . $payload['etag'] . '"');
         }
+
+        $contentType = $messagePack ? 'application/x-msgpack' : 'application/json';
+        return response($payload['body'], 200, ['Content-Type' => $contentType])
+            ->header('ETag', '"' . $payload['etag'] . '"');
     }
 
     // 后端提交数据
@@ -139,75 +144,91 @@ class UniProxyController extends Controller
                 'error' => 'Invalid online data format'
             ], 400);
         }
-        $updateAt = time();
-
-        $cacheKeys = [];
-        $keyMap = [];
-        foreach ($data as $uid => $_) {
-            if (!is_numeric($uid)) continue;
-            $key = 'ALIVE_IP_USER_' . $uid;
-            $cacheKeys[] = $key;
-            $keyMap[$uid] = $key;
-        }
-
-        if (empty($cacheKeys)) {
+        $lock = Cache::lock('ALIVE_IP_UPDATE_LOCK', 15);
+        try {
+            $lock->block(5, function () use ($data) {
+                $this->updateAliveCache($data);
+            });
+        } catch (LockTimeoutException $e) {
             return response([
-                'data' => true
-            ]);
-        }
-
-        $cachedData = Cache::many($cacheKeys);
-        $updates = [];
-
-        foreach ($data as $uid => $ips) {
-            if (!is_numeric($uid) || !is_array($ips)) {
-                continue; // 跳过无效数据
-            }
-            $key = $keyMap[$uid];
-            $ips_array = $cachedData[$key] ?? [];
-
-            // 更新节点数据
-            $ips_array[$this->nodeType . $this->nodeId] = ['aliveips' => $ips, 'lastupdateAt' => $updateAt];
-            // 清理过期数据
-            foreach ($ips_array as $nodetypeid => $oldips) {
-                if ($nodetypeid !== 'alive_ip' && is_array($oldips) && ($updateAt - ($oldips['lastupdateAt'] ?? 0) > 100)) {
-                    unset($ips_array[$nodetypeid]);
-                }
-            }
-
-            // 计算活跃IP数量
-            $count = 0;
-            if (config('v2board.device_limit_mode', 0) == 1) {
-                $ipmap = [];
-                foreach ($ips_array as $nodetypeid => $newdata) {
-                    if ($nodetypeid !== 'alive_ip' && is_array($newdata) && isset($newdata['aliveips'])) {
-                        foreach ($newdata['aliveips'] as $ip_NodeId) {
-                            $ip = explode("_", $ip_NodeId)[0];
-                            $ipmap[$ip] = 1;
-                        }
-                    }
-                }
-                $count = count($ipmap);
-            } else {
-                foreach ($ips_array as $nodetypeid => $newdata) {
-                    if ($nodetypeid !== 'alive_ip' && is_array($newdata) && isset($newdata['aliveips'])) {
-                        $count += count($newdata['aliveips']);
-                    }
-                }
-            }
-            $ips_array['alive_ip'] = $count;
-
-            $updates[$key] = $ips_array;
-        }
-
-        // 批量更新缓存
-        foreach ($updates as $key => $value) {
-            Cache::put($key, $value, 120);
+                'error' => 'Online data is busy, retry later'
+            ], 503);
         }
 
         return response([
             'data' => true
         ]);
+    }
+
+    private function updateAliveCache(array $data): void
+    {
+        $updateAt = time();
+        $cacheKeys = [];
+        $keyMap = [];
+        foreach ($data as $uid => $ips) {
+            if (!is_numeric($uid) || (int)$uid <= 0 || !is_array($ips)) {
+                continue;
+            }
+            $key = 'ALIVE_IP_USER_' . (int)$uid;
+            $cacheKeys[] = $key;
+            $keyMap[(int)$uid] = $key;
+        }
+        if (empty($cacheKeys)) {
+            return;
+        }
+
+        $cachedData = Cache::many($cacheKeys);
+        $updates = [];
+        foreach ($data as $uid => $ips) {
+            $uid = (int)$uid;
+            if (!isset($keyMap[$uid]) || !is_array($ips)) {
+                continue;
+            }
+            $key = $keyMap[$uid];
+            $ipData = $cachedData[$key] ?? [];
+            if (!is_array($ipData)) {
+                $ipData = [];
+            }
+            $ipData[$this->nodeType . ':' . $this->nodeId] = [
+                'aliveips' => $ips,
+                'lastupdateAt' => $updateAt
+            ];
+
+            foreach ($ipData as $node => $oldData) {
+                if ($node !== 'alive_ip' && is_array($oldData)
+                    && $updateAt - ($oldData['lastupdateAt'] ?? 0) > 100) {
+                    unset($ipData[$node]);
+                }
+            }
+
+            $count = 0;
+            if ((int)config('v2board.device_limit_mode', 0) === 1) {
+                $ipMap = [];
+                foreach ($ipData as $node => $nodeData) {
+                    if ($node === 'alive_ip' || !is_array($nodeData) || !isset($nodeData['aliveips'])) {
+                        continue;
+                    }
+                    foreach ($nodeData['aliveips'] as $ipNodeId) {
+                        if (!is_scalar($ipNodeId)) {
+                            continue;
+                        }
+                        $ipMap[explode('_', $ipNodeId)[0]] = true;
+                    }
+                }
+                $count = count($ipMap);
+            } else {
+                foreach ($ipData as $node => $nodeData) {
+                    if ($node !== 'alive_ip' && is_array($nodeData) && isset($nodeData['aliveips'])) {
+                        $count += count($nodeData['aliveips']);
+                    }
+                }
+            }
+            $ipData['alive_ip'] = $count;
+            $updates[$key] = $ipData;
+        }
+
+        Cache::putMany($updates, 120);
+        Cache::forget('ALIVE_LIST');
     }
 
     // 后端获取配置

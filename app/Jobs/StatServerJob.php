@@ -16,17 +16,19 @@ class StatServerJob implements ShouldQueue
     protected $server;
     protected $protocol;
     protected $recordType;
+    protected $recordAt;
 
     public $tries = 3;
     public $timeout = 60;
 
-    public function __construct(array $data, array $server, $protocol, $recordType = 'd')
+    public function __construct(array $data, array $server, $protocol, $recordType = 'd', $recordAt = null)
     {
         $this->onQueue('stat');
         $this->data = $data;
         $this->server = $server;
         $this->protocol = $protocol;
         $this->recordType = $recordType;
+        $this->recordAt = $recordAt;
     }
 
     /**
@@ -34,7 +36,18 @@ class StatServerJob implements ShouldQueue
      */
     public function handle()
     {
-        $recordAt = strtotime(date('Y-m-d'));
+        DB::transaction(function () {
+            $this->persist();
+        }, 3);
+    }
+
+    /**
+     * Persist inside the caller's transaction when this job is consolidated
+     * into TrafficFetchJob. Kept public for backward-compatible queued jobs.
+     */
+    public function persist(): void
+    {
+        $recordAt = $this->recordAt ?: strtotime(date('Y-m-d'));
         $now = time();
         $u = 0;
         $d = 0;

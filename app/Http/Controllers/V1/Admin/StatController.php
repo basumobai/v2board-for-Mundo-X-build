@@ -12,6 +12,7 @@ use App\Models\ServerTrojan;
 use App\Models\ServerVmess;
 use App\Models\ServerVless;
 use App\Models\ServerAnytls;
+use App\Models\ServerMx;
 use App\Models\ServerV2node;
 use App\Models\Stat;
 use App\Models\StatServer;
@@ -19,14 +20,15 @@ use App\Models\StatUser;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class StatController extends Controller
 {
     public function getOverride(Request $request)
     {
-        return [
-            'data' => [
+        return Cache::remember('ADMIN_STAT_OVERRIDE', 30, function () {
+            return ['data' => [
                 'online_user' => User::where('t','>=', time() - 600)
                     ->count(),
                 'month_income' => Order::where('created_at', '>=', strtotime(date('Y-m-1')))
@@ -61,8 +63,8 @@ class StatController extends Controller
                 'commission_last_month_payout' => CommissionLog::where('created_at', '>=', strtotime('-1 month', strtotime(date('Y-m-1'))))
                     ->where('created_at', '<', strtotime(date('Y-m-1')))
                     ->sum('get_amount'),
-            ]
-        ];
+            ]];
+        });
     }
 
     public function getOrder(Request $request)
@@ -109,137 +111,38 @@ class StatController extends Controller
 
     public function getServerLastRank()
     {
-        $servers = [
-            'shadowsocks' => ServerShadowsocks::where('parent_id', null)->get()->toArray(),
-            'v2ray' => ServerVmess::where('parent_id', null)->get()->toArray(),
-            'trojan' => ServerTrojan::where('parent_id', null)->get()->toArray(),
-            'vmess' => ServerVmess::where('parent_id', null)->get()->toArray(),
-            'vless' => ServerVless::where('parent_id', null)->get()->toArray(),
-            'tuic' => ServerTuic::where('parent_id', null)->get()->toArray(),
-            'hysteria'=> ServerHysteria::where('parent_id', null)->get()->toArray(),
-            'anytls' => ServerAnytls::where('parent_id', null)->get()->toArray(),
-            'v2node' => ServerV2node::where('parent_id', null)->get()->toArray()
-        ];
         $startAt = strtotime('-1 day', strtotime(date('Y-m-d')));
         $endAt = strtotime(date('Y-m-d'));
-        $statistics = StatServer::select([
-            'server_id',
-            'server_type',
-            'u',
-            'd',
-            DB::raw('(u+d) as total')
-        ])
-            ->where('record_at', '>=', $startAt)
-            ->where('record_at', '<', $endAt)
-            ->where('record_type', 'd')
-            ->limit(15)
-            ->orderBy('total', 'DESC')
-            ->get()
-            ->toArray();
-        foreach ($statistics as $k => $v) {
-            foreach ($servers[$v['server_type']] as $server) {
-                if ($server['id'] === $v['server_id']) {
-                    $statistics[$k]['server_name'] = $server['name'];
-                }
-            }
-            $statistics[$k]['total'] = $statistics[$k]['total'] / 1073741824;
-        }
-        array_multisort(array_column($statistics, 'total'), SORT_DESC, $statistics);
-        return [
-            'data' => $statistics
-        ];
+        return ['data' => $this->getServerRank($startAt, $endAt)];
     }
 
     public function getServerTodayRank()
     {
-        $servers = [
-            'shadowsocks' => ServerShadowsocks::where('parent_id', null)->get()->toArray(),
-            'v2ray' => ServerVmess::where('parent_id', null)->get()->toArray(),
-            'trojan' => ServerTrojan::where('parent_id', null)->get()->toArray(),
-            'vmess' => ServerVmess::where('parent_id', null)->get()->toArray(),
-            'vless' => ServerVless::where('parent_id', null)->get()->toArray(),
-            'tuic' => ServerTuic::where('parent_id', null)->get()->toArray(),
-            'hysteria'=> ServerHysteria::where('parent_id', null)->get()->toArray(),
-            'anytls' => ServerAnytls::where('parent_id', null)->get()->toArray(),
-            'v2node' => ServerV2node::where('parent_id', null)->get()->toArray()
-        ];
         $startAt = strtotime(date('Y-m-d'));
         $endAt = time();
-        $statistics = StatServer::select([
-            'server_id',
-            'server_type',
-            'u',
-            'd',
-            DB::raw('(u+d) as total')
-        ])
-            ->where('record_at', '>=', $startAt)
-            ->where('record_at', '<', $endAt)
-            ->where('record_type', 'd')
-            ->limit(15)
-            ->orderBy('total', 'DESC')
-            ->get()
-            ->toArray();
-        foreach ($statistics as $k => $v) {
-            foreach ($servers[$v['server_type']] as $server) {
-                if ($server['id'] === $v['server_id']) {
-                    $statistics[$k]['server_name'] = $server['name'];
-                }
-            }
-            $statistics[$k]['total'] = $statistics[$k]['total'] / 1073741824;
-        }
-        array_multisort(array_column($statistics, 'total'), SORT_DESC, $statistics);
-        return [
-            'data' => $statistics
-        ];
+        return ['data' => $this->getServerRank($startAt, $endAt)];
     }
 
     public function getUserTodayRank()
     {
         $startAt = strtotime(date('Y-m-d'));
         $endAt = time();
-        $statistics = StatUser::select([
-            'user_id',
-            'server_rate',
-            'u',
-            'd',
-            DB::raw('(u+d) as total')
-        ])
-            ->where('record_at', '>=', $startAt)
-            ->where('record_at', '<', $endAt)
-            ->where('record_type', 'd')
-            ->limit(30)
-            ->orderBy('total', 'DESC')
-            ->get()
-            ->toArray();
-        $data = [];
-        $idIndexMap = [];
-        foreach ($statistics as $k => $v) {
-            $id = $statistics[$k]['user_id'];
-            $user = User::where('id', $id)->first();
-            $statistics[$k]['email'] = empty($user) ? "null" : $user['email'];
-            $statistics[$k]['total'] = $statistics[$k]['total'] * $statistics[$k]['server_rate'] / 1073741824;
-            if (isset($idIndexMap[$id])) {
-                $index = $idIndexMap[$id];
-                $data[$index]['total'] += $statistics[$k]['total'];
-            } else {
-                unset($statistics[$k]['server_rate']);
-                $data[] = $statistics[$k];
-                $idIndexMap[$id] = count($data) - 1;
-            }
-        }
-        array_multisort(array_column($data, 'total'), SORT_DESC, $data);
-        return [
-            'data' => array_slice($data, 0, 15)
-        ];
+        return ['data' => $this->getUserRank($startAt, $endAt)];
     }
 
     public function getUserLastRank()
     {
         $startAt = strtotime('-1 day', strtotime(date('Y-m-d')));
         $endAt = strtotime(date('Y-m-d'));
-        $statistics = StatUser::select([
-            'user_id',
-            'server_rate',
+        return ['data' => $this->getUserRank($startAt, $endAt)];
+    }
+
+    private function getServerRank(int $startAt, int $endAt): array
+    {
+        $serverNames = $this->getServerNames();
+        $statistics = StatServer::select([
+            'server_id',
+            'server_type',
             'u',
             'd',
             DB::raw('(u+d) as total')
@@ -247,31 +150,60 @@ class StatController extends Controller
             ->where('record_at', '>=', $startAt)
             ->where('record_at', '<', $endAt)
             ->where('record_type', 'd')
-            ->limit(30)
-            ->orderBy('total', 'DESC')
+            ->orderByDesc('total')
+            ->limit(15)
             ->get()
             ->toArray();
-        $data = [];
-        $idIndexMap = [];
-        foreach ($statistics as $k => $v) {
-            $id = $statistics[$k]['user_id'];
-            $user = User::where('id', $id)->first();
-            $statistics[$k]['email'] = empty($user) ? "null" : $user['email'];
-            $statistics[$k]['total'] = $statistics[$k]['total'] * $statistics[$k]['server_rate'] / 1073741824;
-            if (isset($idIndexMap[$id])) {
 
-                $index = $idIndexMap[$id];
-                $data[$index]['total'] += $statistics[$k]['total'];
-            } else {
-                unset($statistics[$k]['server_rate']);
-                $data[] = $statistics[$k];
-                $idIndexMap[$id] = count($data) - 1;
-            }
+        foreach ($statistics as $index => $statistic) {
+            $statistics[$index]['server_name'] = $serverNames[$statistic['server_type']][$statistic['server_id']] ?? 'null';
+            $statistics[$index]['total'] = $statistic['total'] / 1073741824;
         }
-        array_multisort(array_column($data, 'total'), SORT_DESC, $data);
-        return [
-            'data' => array_slice($data, 0, 15)
-        ];
+        return $statistics;
+    }
+
+    private function getUserRank(int $startAt, int $endAt): array
+    {
+        $statistics = StatUser::select([
+            'user_id',
+            DB::raw('SUM((u + d) * server_rate) AS total')
+        ])
+            ->where('record_at', '>=', $startAt)
+            ->where('record_at', '<', $endAt)
+            ->where('record_type', 'd')
+            ->groupBy('user_id')
+            ->orderByDesc('total')
+            ->limit(15)
+            ->get();
+        $emails = User::whereIn('id', $statistics->pluck('user_id')->all())
+            ->pluck('email', 'id');
+
+        return $statistics->map(function ($statistic) use ($emails) {
+            return [
+                'user_id' => $statistic->user_id,
+                'email' => $emails[$statistic->user_id] ?? 'null',
+                'total' => $statistic->total / 1073741824
+            ];
+        })->all();
+    }
+
+    private function getServerNames(): array
+    {
+        return Cache::remember('ADMIN_SERVER_NAME_MAP', 60, function () {
+            $vmess = ServerVmess::whereNull('parent_id')->pluck('name', 'id')->all();
+            return [
+                'shadowsocks' => ServerShadowsocks::whereNull('parent_id')->pluck('name', 'id')->all(),
+                'v2ray' => $vmess,
+                'vmess' => $vmess,
+                'trojan' => ServerTrojan::whereNull('parent_id')->pluck('name', 'id')->all(),
+                'vless' => ServerVless::whereNull('parent_id')->pluck('name', 'id')->all(),
+                'tuic' => ServerTuic::whereNull('parent_id')->pluck('name', 'id')->all(),
+                'hysteria' => ServerHysteria::whereNull('parent_id')->pluck('name', 'id')->all(),
+                'anytls' => ServerAnytls::whereNull('parent_id')->pluck('name', 'id')->all(),
+                'mx' => ServerMx::whereNull('parent_id')->pluck('name', 'id')->all(),
+                'v2node' => ServerV2node::whereNull('parent_id')->pluck('name', 'id')->all()
+            ];
+        });
     }
 
     public function getStatUser(Request $request)
@@ -293,4 +225,3 @@ class StatController extends Controller
     }
 
 }
-

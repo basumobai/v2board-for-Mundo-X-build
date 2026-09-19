@@ -17,7 +17,8 @@ class SendEmailJob implements ShouldQueue
     protected $params;
 
     public $tries = 3;
-    public $timeout = 10;
+    public $timeout = 30;
+    public $backoff = [5, 30];
     /**
      * Create a new job instance.
      *
@@ -50,7 +51,6 @@ class SendEmailJob implements ShouldQueue
         $subject = $params['subject'];
         $params['template_name'] = 'mail.' . config('v2board.email_template', 'default') . '.' . $params['template_name'];
         try {
-            sleep(2); 
             Mail::send(
                 $params['template_name'],
                 $params['template_value'],
@@ -58,15 +58,23 @@ class SendEmailJob implements ShouldQueue
                     $message->to($email)->subject($subject);
                 }
             );
-        } catch (\Exception $e) {
-            $error = $e->getMessage();
+        } catch (\Throwable $e) {
+            MailLog::create([
+                'email' => $params['email'],
+                'subject' => $params['subject'],
+                'template_name' => $params['template_name'],
+                'error' => $e->getMessage()
+            ]);
+            // Let the queue retry transient SMTP failures. Swallowing the
+            // exception previously marked failed deliveries as successful.
+            throw $e;
         }
 
         $log = [
             'email' => $params['email'],
             'subject' => $params['subject'],
             'template_name' => $params['template_name'],
-            'error' => isset($error) ? $error : NULL
+            'error' => NULL
         ];
 
         MailLog::create($log);
