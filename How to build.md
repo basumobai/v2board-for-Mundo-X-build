@@ -106,19 +106,20 @@ Web 默认 2 个 Worker，不再按整台宿主机 CPU 翻倍。队列默认固�
 - 修复 APP_ENV=production 没有 Horizon 队列配置的问题；队列规模按实例参数控制，不再探测整台主机内存决定进程数。
 - 增加 HTTP 健康检查和容器日志轮转；继续保留数据库事务清理及请求结束断开连接的安全保护。
 
-这一轮保留 PHP 8.2 / Laravel 8 / AdapterMan 及现有 API、业务表结构。**不是 Laravel 大版本升级，也不代表已经完成框架安全升级或业务负载性能压测。** 没有给出未经测量的 QPS 提升百分比。
+这一轮保留 PHP 8.2 / Laravel 8 / AdapterMan 及现有 API；数据库新增流量账本表、用户账期字段和相关索引。**没有完成框架安全升级或业务负载性能压测。** 没有给出未经测量的 QPS 提升百分比。
 
 ## 已有站点更新
 
-先备份数据库、`.env`、`config/v2board.php`、`config/theme/`、`storage/` 和自定义资源，备份放在项目目录之外并验证可恢复。然后确认工作区没有尚未处理的修改：
+先备份数据库、Redis 数据卷、`.env`、`config/v2board.php`、`config/theme/`、`storage/` 和自定义资源，备份放在项目目录之外并验证可恢复。建议先在生产数据副本上演练升级。然后确认工作区没有尚未处理的修改：
 
 本次流量账本升级还必须保留**同一时间点的 Redis 数据卷备份**：旧版队列与待结算流量仍在 Redis。新版节点报告在 MySQL 的一个事务里同时记录报告 ID、用户流量和日统计；Redis 的旧流量批次只用于升级过渡。切勿单独回滚数据库或替换 Redis 卷后直接重放队列。
 
 ```bash
 git status --short
-git pull --ff-only
 bash update.sh
 ```
+
+不要预先执行 `git pull`：`update.sh` 自己获取远端更新，在旧 Web 和 Horizon 停止或排空后才切换代码。如果提前切换源码，旧 Worker 可能加载新版类或用旧逻辑消费新版报告。
 
 此版本把 `docker/nginx.conf` 用作 Nginx 环境变量模板，请不要继续用旧的固定 `default.conf` 挂载。更新会保留已有 Compose 项目名、Redis 卷、密钥和前缀。脚本先停止 Web 和 Scheduler，让旧 Horizon 排空 `traffic_fetch` 与 `stat` 队列（最多等 10 分钟），再停止 Horizon、切换代码、运行迁移并结清遗留 Redis 批次。必要账本、索引、InnoDB 和重置字段检查失败时不会启动新版服务；请根据错误修复数据或恢复备份，不要跳过检查。更新期间入口会暂时不可用。自行改过部署文件时先合并差异，脚本不会替你覆盖未提交修改。
 
