@@ -328,6 +328,8 @@ class OrderService
     {
         $this->user->u = 0;
         $this->user->d = 0;
+        $this->user->traffic_reset_at = (int)round(microtime(true) * 1000000);
+        $this->user->traffic_reset_cycle = (int)date('Ymd');
     }
 
     private function buyByPeriod(Order $order, Plan $plan)

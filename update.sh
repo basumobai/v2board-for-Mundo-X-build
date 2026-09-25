@@ -59,5 +59,13 @@ docker compose run --rm --no-deps installer composer install \
     --optimize-autoloader \
     --no-interaction
 docker compose run --rm --no-deps web php artisan v2board:update
+# No old producer/consumer is running. Settle the legacy Redis batches before
+# users can buy a plan or manually reset traffic on the new web service.
+docker compose run --rm --no-deps web php -r '
+    require "vendor/autoload.php";
+    $app = require "bootstrap/app.php";
+    $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+    app(App\Console\Commands\TrafficUpdate::class)->settleBeforeReset();
+'
 finish_deployment
 trap - ERR
