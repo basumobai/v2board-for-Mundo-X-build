@@ -10,6 +10,8 @@ use RuntimeException;
 class PerformanceSchema
 {
     private const INDEXES = [
+        'v2_node_report' => ['created_at' => ['index', ['created_at']]],
+        'v2_traffic_batch' => ['created_at' => ['index', ['created_at']]],
         'v2_commission_log' => [
             'trade_inviter' => ['unique', ['trade_no', 'invite_user_id']],
             'idx_commission_created_at' => ['index', ['created_at']],
@@ -20,8 +22,14 @@ class PerformanceSchema
             'idx_created_status' => ['index', ['created_at', 'status']],
             'idx_paid_status' => ['index', ['paid_at', 'status']],
         ],
-        'v2_stat_server' => ['idx_type_record' => ['index', ['record_type', 'record_at']]],
-        'v2_stat_user' => ['idx_type_record_user' => ['index', ['record_type', 'record_at', 'user_id']]],
+        'v2_stat_server' => [
+            'server_id_server_type_record_at' => ['unique', ['server_id', 'server_type', 'record_at']],
+            'idx_type_record' => ['index', ['record_type', 'record_at']],
+        ],
+        'v2_stat_user' => [
+            'server_rate_user_id_record_at' => ['unique', ['server_rate', 'user_id', 'record_at']],
+            'idx_type_record_user' => ['index', ['record_type', 'record_at', 'user_id']],
+        ],
         'v2_ticket' => ['idx_autoclose' => ['index', ['status', 'reply_status', 'updated_at', 'id']]],
         'v2_user' => [
             'idx_group_access' => ['index', ['group_id', 'banned', 'expired_at', 'id']],
@@ -71,18 +79,24 @@ class PerformanceSchema
         }
 
         foreach (['v2_node_report' => 'report_id', 'v2_traffic_batch' => 'batch_id'] as $table => $id) {
-            foreach ([$id, 'created_at'] as $column) {
-                if (!Schema::hasColumn($table, $column)) {
-                    throw new RuntimeException("Missing {$table}.{$column}");
-                }
-            }
             $primary = self::index($table, 'PRIMARY');
             if (!$primary || $primary['columns'] !== [$id] || !$primary['unique']) {
                 throw new RuntimeException("Missing primary key on {$table}.{$id}");
             }
-            $idColumn = DB::selectOne('SHOW COLUMNS FROM `' . $table . '` WHERE Field = ?', [$id]);
-            if (!$idColumn || strtolower($idColumn->Type) !== 'char(32)') {
-                throw new RuntimeException("Unexpected type for {$table}.{$id}");
+        }
+        foreach ([
+            'v2_node_report' => [
+                'report_id' => 'char(32)', 'server_id' => 'int',
+                'server_type' => 'char(11)', 'created_at' => 'int',
+            ],
+            'v2_traffic_batch' => ['batch_id' => 'char(32)', 'created_at' => 'int'],
+        ] as $table => $columns) {
+            foreach ($columns as $column => $type) {
+                $definition = DB::selectOne('SHOW COLUMNS FROM `' . $table . '` WHERE Field = ?', [$column]);
+                if (!$definition || !preg_match('/^' . preg_quote($type, '/') . '(?:\\(\\d+\\))?$/i', $definition->Type)
+                    || strtoupper($definition->Null) !== 'NO') {
+                    throw new RuntimeException("Unexpected definition for {$table}.{$column}");
+                }
             }
         }
         foreach (['traffic_reset_at' => 'bigint', 'traffic_reset_cycle' => 'int'] as $column => $type) {

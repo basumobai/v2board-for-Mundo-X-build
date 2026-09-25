@@ -37,6 +37,27 @@ try {
     PerformanceSchema::ensure();
     PerformanceSchema::ensure(); // Upgrade must be safe to rerun.
 
+    // An existing but incomplete ledger must stop the upgrade before workers start.
+    DB::statement('ALTER TABLE v2_node_report DROP COLUMN server_type');
+    try {
+        try {
+            PerformanceSchema::ensure();
+            throw new RuntimeException('Incomplete report ledger passed the schema gate');
+        } catch (RuntimeException $expected) {
+            assertSameValue('Unexpected definition for v2_node_report.server_type',
+                $expected->getMessage(), 'Incomplete report ledger was not rejected');
+        }
+    } finally {
+        DB::statement('ALTER TABLE v2_node_report ADD COLUMN server_type char(11) NOT NULL AFTER server_id');
+    }
+    DB::statement('ALTER TABLE v2_node_report DROP INDEX created_at');
+    DB::statement('ALTER TABLE v2_stat_user DROP INDEX server_rate_user_id_record_at');
+    PerformanceSchema::ensure(); // Repair missing cleanup and aggregation indexes.
+    assertSameValue(1, count(DB::select('SHOW INDEX FROM v2_node_report WHERE Key_name = ?', ['created_at'])),
+        'Report cleanup index was not restored');
+    assertSameValue(3, count(DB::select('SHOW INDEX FROM v2_stat_user WHERE Key_name = ?',
+        ['server_rate_user_id_record_at'])), 'User statistic unique index was not restored');
+
     $job = new TrafficFetchJob(
         [$userId => [100, 200]],
         ['id' => $serverId, 'rate' => 1.5],
