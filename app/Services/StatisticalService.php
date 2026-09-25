@@ -16,11 +16,6 @@ class StatisticalService {
     protected $endAt;
     protected $serverStats;
 
-    public function __construct()
-    {
-        ini_set('memory_limit', -1);
-    }
-
     public function setStartAt($timestamp) {
         $this->startAt = $timestamp;
     }
@@ -53,37 +48,40 @@ class StatisticalService {
             $startAt = strtotime(date('Y-m-d'));
             $endAt = strtotime('+1 day', $startAt);
         }
-        $data = [];
-        $data['order_count'] = Order::where('created_at', '>=', $startAt)
+        $createdOrders = Order::where('created_at', '>=', $startAt)
             ->where('created_at', '<', $endAt)
-            ->count();
-        $data['order_total'] = Order::where('created_at', '>=', $startAt)
-            ->where('created_at', '<', $endAt)
-            ->sum('total_amount');
-        $data['paid_count'] = Order::where('paid_at', '>=', $startAt)
+            ->selectRaw('COUNT(*) AS aggregate_count, COALESCE(SUM(total_amount), 0) AS aggregate_total')
+            ->first();
+        $paidOrders = Order::where('paid_at', '>=', $startAt)
             ->where('paid_at', '<', $endAt)
             ->whereNotIn('status', [0, 2])
-            ->count();
-        $data['paid_total'] = Order::where('paid_at', '>=', $startAt)
-            ->where('paid_at', '<', $endAt)
-            ->whereNotIn('status', [0, 2])
-            ->sum('total_amount');
-        $commissionLogBuilder = CommissionLog::where('created_at', '>=', $startAt)
-            ->where('created_at', '<', $endAt);
-        $data['commission_count'] = $commissionLogBuilder->count();
-        $data['commission_total'] = $commissionLogBuilder->sum('get_amount');
-        $data['register_count'] = User::where('created_at', '>=', $startAt)
+            ->selectRaw('COUNT(*) AS aggregate_count, COALESCE(SUM(total_amount), 0) AS aggregate_total')
+            ->first();
+        $commissions = CommissionLog::where('created_at', '>=', $startAt)
             ->where('created_at', '<', $endAt)
-            ->count();
-        $data['invite_count'] = User::where('created_at', '>=', $startAt)
+            ->selectRaw('COUNT(*) AS aggregate_count, COALESCE(SUM(get_amount), 0) AS aggregate_total')
+            ->first();
+        $users = User::where('created_at', '>=', $startAt)
             ->where('created_at', '<', $endAt)
-            ->whereNotNull('invite_user_id')
-            ->count();
-        $data['transfer_used_total'] = StatServer::where('created_at', '>=', $startAt)
-                ->where('created_at', '<', $endAt)
-                ->select(DB::raw('SUM(u) + SUM(d) as total'))
-                ->value('total') ?? 0;
-        return $data;
+            ->selectRaw('COUNT(*) AS aggregate_count, SUM(invite_user_id IS NOT NULL) AS invite_count')
+            ->first();
+        $transferUsed = StatServer::where('record_type', 'd')
+            ->where('record_at', '>=', $startAt)
+            ->where('record_at', '<', $endAt)
+            ->selectRaw('COALESCE(SUM(u), 0) + COALESCE(SUM(d), 0) AS total')
+            ->value('total');
+
+        return [
+            'order_count' => (int)$createdOrders->aggregate_count,
+            'order_total' => (int)$createdOrders->aggregate_total,
+            'paid_count' => (int)$paidOrders->aggregate_count,
+            'paid_total' => (int)$paidOrders->aggregate_total,
+            'commission_count' => (int)$commissions->aggregate_count,
+            'commission_total' => (int)$commissions->aggregate_total,
+            'register_count' => (int)$users->aggregate_count,
+            'invite_count' => (int)$users->invite_count,
+            'transfer_used_total' => $transferUsed ?? 0
+        ];
     }
 
     public function statServer($serverId, $serverType, $u, $d)

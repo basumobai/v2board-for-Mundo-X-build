@@ -2,8 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Models\StatServer;
-use App\Models\StatUser;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -18,84 +16,101 @@ class StatUserJob implements ShouldQueue
     protected $server;
     protected $protocol;
     protected $recordType;
+    protected $recordAt;
 
     public $tries = 3;
     public $timeout = 60;
 
-    /**
-     * Create a new job instance.
-     *
-     * @return void
-     */
-    public function __construct(array $data, array $server, $protocol, $recordType = 'd')
+    public function __construct(array $data, array $server, $protocol, $recordType = 'd', $recordAt = null)
     {
         $this->onQueue('stat');
-        $this->data =$data;
+        $this->data = $data;
         $this->server = $server;
         $this->protocol = $protocol;
         $this->recordType = $recordType;
+        $this->recordAt = $recordAt;
     }
 
     /**
-     * Execute the job.
+     * Add traffic to the daily aggregate atomically.
      *
-     * @return void
+     * The old implementation first loaded all existing rows and then issued
+     * one SELECT plus one UPDATE per user. Apart from being N+1, two workers
+     * could read the same counters and overwrite each other's increments.
      */
     public function handle()
     {
-        $recordAt = strtotime(date('Y-m-d'));
-        if ($this->recordType === 'm') {
-            //
-        }
-        $attempt = 0;
-        $maxAttempts = 3;
-        $existingData = StatUser::where('record_at', $recordAt)
-        ->where('server_rate', $this->server['rate'])
-        ->whereIn('user_id', array_keys($this->data))
-        ->select(['user_id', 'id', 'u', 'd'])
-        ->get()
-        ->keyBy('user_id');
+        DB::transaction(function () {
+            $this->persist();
+        }, 3);
+    }
 
-        $insertData = [];
-        while ($attempt < $maxAttempts) {
-            try {
-                DB::beginTransaction();
-                foreach($this->data as $userId => $trafficData){
-                    if (isset($existingData[$userId])) {
-                        $userdata = StatUser::where('id', $existingData[$userId]['id'])->first();
-                        $userdata->update([
-                            'u' => $userdata['u'] + $trafficData[0],
-                            'd' => $userdata['d'] + $trafficData[1]
-                        ]);
-                    } else {
-                        $insertData[] = [
-                            'user_id' => $userId,
-                            'server_rate' => $this->server['rate'],
-                            'u' => $trafficData[0],
-                            'd' => $trafficData[1],
-                            'record_type' => $this->recordType,
-                            'record_at' => $recordAt
-                        ];
-                    }
-                }
-                if (!empty($insertData)) {
-                    collect($insertData)->chunk(500)->each(function ($chunk) {
-                        StatUser::upsert($chunk->toArray(), ['user_id', 'server_rate', 'record_at']);
-                    });
-                }
-                DB::commit();
-                return;
-            } catch (\Exception $e) {
-                DB::rollback();
-                if (strpos($e->getMessage(), '40001') !== false || strpos(strtolower($e->getMessage()), 'deadlock') !== false) {
-                    $attempt++;
-                    if ($attempt < $maxAttempts) {
-                        sleep(pow(2, $attempt));
-                        continue;
-                    }
-                }
-                abort(500, '用户统计数据失败'. $e->getMessage());
+    /**
+     * Persist inside the caller's transaction when this job is consolidated
+     * into TrafficFetchJob. Kept public for backward-compatible queued jobs.
+     */
+    public function persist(): void
+    {
+        $recordAt = $this->recordAt ?: strtotime(date('Y-m-d'));
+        $now = time();
+        $rows = [];
+
+        foreach ($this->data as $userId => $trafficData) {
+            if (!is_numeric($userId) || !is_array($trafficData)
+                || !isset($trafficData[0], $trafficData[1])) {
+                continue;
+            }
+
+            $rows[] = [
+                (int)$userId,
+                (float)($this->server['rate'] ?? 1),
+                (int)$trafficData[0],
+                (int)$trafficData[1],
+                $this->recordType,
+                $recordAt,
+                $now,
+                $now
+            ];
+        }
+
+        if (empty($rows)) {
+            return;
+        }
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            $this->upsertChunk($chunk);
+        }
+    }
+
+    private function upsertChunk(array $rows): void
+    {
+        $columns = [
+            'user_id',
+            'server_rate',
+            'u',
+            'd',
+            'record_type',
+            'record_at',
+            'created_at',
+            'updated_at'
+        ];
+        $rowPlaceholder = '(' . implode(',', array_fill(0, count($columns), '?')) . ')';
+        $placeholders = implode(',', array_fill(0, count($rows), $rowPlaceholder));
+        $bindings = [];
+
+        foreach ($rows as $row) {
+            foreach ($row as $value) {
+                $bindings[] = $value;
             }
         }
+
+        DB::statement(
+            'INSERT INTO v2_stat_user (' . implode(',', $columns) . ') VALUES ' . $placeholders .
+            ' ON DUPLICATE KEY UPDATE' .
+            ' u = u + VALUES(u),' .
+            ' d = d + VALUES(d),' .
+            ' updated_at = VALUES(updated_at)',
+            $bindings
+        );
     }
 }

@@ -6,8 +6,10 @@ use RuntimeException;
 
 class RuntimeConfigService
 {
+    private const FILE_HASH_CHECK_INTERVAL = 1.0;
     private static $workerReloadRequested = false;
     private static $arrayFileCache = [];
+    private static $lastFileHashCheckAt = [];
 
     public function refreshV2boardConfig(): array
     {
@@ -63,6 +65,23 @@ class RuntimeConfigService
     private function loadArrayFile(string $path, array $fallback): array
     {
         clearstatcache(true, $path);
+        $now = microtime(true);
+        $cached = self::$arrayFileCache[$path] ?? null;
+        $lastCheckAt = self::$lastFileHashCheckAt[$path] ?? 0.0;
+
+        // Configuration is still refreshed quickly after an edit, but a
+        // long-lived worker no longer reads and hashes the file on every
+        // request. The one-second bound is deliberately short because admin
+        // settings are expected to become visible without a worker restart.
+        // The production AdapterMan worker already has an explicit reload
+        // path; throttle only that hot request path. CLI and test callers keep
+        // the original immediate same-size edit detection semantics.
+        $throttle = defined('isWEBMAN') && isWEBMAN;
+        if ($throttle && $cached !== null && ($now - $lastCheckAt) < self::FILE_HASH_CHECK_INTERVAL) {
+            return $cached['config'];
+        }
+
+        self::$lastFileHashCheckAt[$path] = $now;
         if (!is_file($path)) {
             unset(self::$arrayFileCache[$path]);
             return $fallback;
@@ -83,6 +102,7 @@ class RuntimeConfigService
         $config = require $path;
         if (!is_array($config)) {
             unset(self::$arrayFileCache[$path]);
+            unset(self::$lastFileHashCheckAt[$path]);
             return $fallback;
         }
         if ($hash !== false) {
@@ -125,6 +145,7 @@ class RuntimeConfigService
 
         clearstatcache(true, $path);
         unset(self::$arrayFileCache[$path]);
+        unset(self::$lastFileHashCheckAt[$path]);
         if (function_exists('opcache_invalidate')) {
             @opcache_invalidate($path, true);
         }

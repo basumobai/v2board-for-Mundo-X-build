@@ -33,31 +33,45 @@ class TrojanTidalabController extends Controller
     // 后端获取用户
     public function user(Request $request)
     {
-        ini_set('memory_limit', -1);
         $nodeId = $request->input('node_id');
         $server = ServerTrojan::find($nodeId);
         if (!$server) {
             abort(500, 'fail');
         }
         Cache::put(CacheKey::get('SERVER_TROJAN_LAST_CHECK_AT', $server->id), time(), 3600);
-        $serverService = new ServerService();
-        $users = $serverService->getAvailableUsers($server->group_id);
-        $result = [];
-        foreach ($users as $user) {
-            $user->trojan_user = [
-                "password" => $user->uuid,
+        $cacheKey = 'SERVER_LEGACY_USER_PAYLOAD:' . sha1(json_encode([
+            'trojan',
+            (int)$server->id,
+            (int)$server->updated_at,
+            $server->group_id
+        ]));
+        $payload = Cache::remember($cacheKey, 15, function () use ($server) {
+            $users = (new ServerService())->getAvailableUsers($server->group_id);
+            $result = [];
+            foreach ($users as $user) {
+                $user->trojan_user = [
+                    'password' => $user->uuid,
+                ];
+                unset($user['uuid']);
+                $result[] = $user->toArray();
+            }
+            $body = json_encode([
+                'msg' => 'ok',
+                'data' => $result
+            ]);
+
+            return [
+                'body' => $body,
+                'etag' => sha1($body)
             ];
-            unset($user['uuid']);
-            array_push($result, $user);
+        });
+
+        if (strpos((string)$request->header('If-None-Match'), $payload['etag']) !== false) {
+            return response('', 304)->header('ETag', '"' . $payload['etag'] . '"');
         }
-        $eTag = sha1(json_encode($result));
-        if (strpos($request->header('If-None-Match'), $eTag) !== false ) {
-            abort(304);
-        }
-        return response([
-            'msg' => 'ok',
-            'data' => $result,
-        ])->header('ETag', "\"{$eTag}\"");
+
+        return response($payload['body'], 200, ['Content-Type' => 'application/json'])
+            ->header('ETag', '"' . $payload['etag'] . '"');
     }
 
     // 后端提交数据

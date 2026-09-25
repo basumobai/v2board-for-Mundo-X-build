@@ -36,8 +36,8 @@ jobs:
           find app config routes tests docker -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l webman.php
 
-      - name: Run unit tests
-        run: vendor/bin/phpunit --testsuite Unit
+      - name: Run all PHPUnit suites
+        run: vendor/bin/phpunit
 
   compose:
     runs-on: ubuntu-latest

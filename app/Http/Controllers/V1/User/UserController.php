@@ -135,7 +135,9 @@ class UserController extends Controller
                     [
                         'expired_at' => $user->expired_at - $reset_day * 86400,
                         'u' => 0,
-                        'd' => 0
+                        'd' => 0,
+                        'traffic_reset_at' => (int)round(microtime(true) * 1000000),
+                        'traffic_reset_cycle' => (int)date('Ymd')
                     ]
                 )) {
                     throw new \Exception(__('Save failed'));
@@ -218,6 +220,8 @@ class UserController extends Controller
                 case 4:
                     $user->u = 0;
                     $user->d = 0;
+                    $user->traffic_reset_at = (int)round(microtime(true) * 1000000);
+                    $user->traffic_reset_cycle = (int)date('Ymd');
                     break;
                 case 5:
                     if ($user->plan_id == null || ($user->expired_at !== null && $user->expired_at < $currentTime)) {
@@ -228,6 +232,8 @@ class UserController extends Controller
                         $user->device_limit = $plan->device_limit;
                         $user->u = 0;
                         $user->d = 0;
+                        $user->traffic_reset_at = (int)round(microtime(true) * 1000000);
+                        $user->traffic_reset_cycle = (int)date('Ymd');
                         if($giftcard->value == 0) {
                             $user->expired_at = null;
                         } else {

@@ -39,14 +39,23 @@ class SendRemindMail extends Command
      */
     public function handle()
     {
-        ini_set('memory_limit', -1);
-        $users = User::all();
         $mailService = new MailService();
-        foreach ($users as $user) {
-            if ($user->remind_expire) $mailService->remindExpire($user);
-            if (!($user->expired_at !== NULL && $user->expired_at < time()) && $user->remind_traffic) {
-                $mailService->remindTraffic($user);
-            }
-        }
+        $now = time();
+        User::where(function ($query) {
+            $query->where('remind_expire', 1)
+                ->orWhere('remind_traffic', 1);
+        })
+            ->orderBy('id')
+            ->chunkById(500, function ($users) use ($mailService, $now) {
+                foreach ($users as $user) {
+                    if ($user->remind_expire) {
+                        $mailService->remindExpire($user);
+                    }
+                    if (!($user->expired_at !== NULL && $user->expired_at < $now)
+                        && $user->remind_traffic) {
+                        $mailService->remindTraffic($user);
+                    }
+                }
+            });
     }
 }

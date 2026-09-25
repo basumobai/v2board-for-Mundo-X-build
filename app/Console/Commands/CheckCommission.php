@@ -3,42 +3,17 @@
 namespace App\Console\Commands;
 
 use App\Models\CommissionLog;
-use Illuminate\Console\Command;
 use App\Models\Order;
 use App\Models\User;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CheckCommission extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'check:commission';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
     protected $description = '返佣服务';
 
-    /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
-    /**
-     * Execute the console command.
-     *
-     * @return mixed
-     */
     public function handle()
     {
         $this->autoCheck();
@@ -49,9 +24,9 @@ class CheckCommission extends Command
     {
         if ((int)config('v2board.commission_auto_check_enable', 1)) {
             Order::where('commission_status', 0)
-                ->where('invite_user_id', '!=', NULL)
+                ->whereNotNull('invite_user_id')
                 ->whereIn('status', [3, 4])
-                ->where('updated_at', '<=', strtotime('-3 day', time()))
+                ->where('updated_at', '<=', strtotime('-3 day'))
                 ->update([
                     'commission_status' => 1
                 ]);
@@ -60,68 +35,101 @@ class CheckCommission extends Command
 
     public function autoPayCommission()
     {
-        $orders = Order::where('commission_status', 1)
-            ->where('invite_user_id', '!=', NULL)
-            ->get();
-        foreach ($orders as $order) {
-            DB::beginTransaction();
-            if (!$this->payHandle($order->invite_user_id, $order)) {
-                DB::rollBack();
-                continue;
-            }
-            $order->commission_status = 2;
-            if (!$order->save()) {
-                DB::rollBack();
-                continue;
-            }
-            DB::commit();
-        }
+        Order::where('commission_status', 1)
+            ->whereNotNull('invite_user_id')
+            ->select('id')
+            ->orderBy('id')
+            ->chunkById(200, function ($orders) {
+                foreach ($orders as $candidate) {
+                    try {
+                        DB::transaction(function () use ($candidate) {
+                            // The order row is the claim: only one scheduler can
+                            // distribute this order's commission at a time.
+                            $order = Order::whereKey($candidate->id)
+                                ->lockForUpdate()
+                                ->first();
+                            if (!$order || (int)$order->commission_status !== 1
+                                || !$order->invite_user_id) {
+                                return;
+                            }
+
+                            $this->payHandle($order->invite_user_id, $order);
+                            $order->commission_status = 2;
+                            $order->saveOrFail();
+                        }, 3);
+                    } catch (\Throwable $e) {
+                        Log::error('返佣失败', [
+                            'order_id' => $candidate->id,
+                            'exception' => $e
+                        ]);
+                    }
+                }
+            });
     }
 
     public function payHandle($inviteUserId, Order $order)
     {
-        $level = 3;
-        if ((int)config('v2board.commission_distribution_enable', 0)) {
-            $commissionShareLevels = [
+        $commissionShareLevels = (int)config('v2board.commission_distribution_enable', 0)
+            ? [
                 0 => (int)config('v2board.commission_distribution_l1'),
                 1 => (int)config('v2board.commission_distribution_l2'),
                 2 => (int)config('v2board.commission_distribution_l3')
-            ];
-        } else {
-            $commissionShareLevels = [
-                0 => 100
-            ];
+            ]
+            : [0 => 100];
+        $visited = [];
+        $remainingCommission = max(
+            0,
+            (int)$order->commission_balance
+                - (int)CommissionLog::where('trade_no', $order->trade_no)->sum('get_amount')
+        );
+
+        for ($level = 0; $level < 3 && $inviteUserId; $level++) {
+            $inviteUserId = (int)$inviteUserId;
+            if ($inviteUserId <= 0 || isset($visited[$inviteUserId])) {
+                break;
+            }
+            $visited[$inviteUserId] = true;
+
+            $inviter = User::whereKey($inviteUserId)->lockForUpdate()->first();
+            if (!$inviter) {
+                break;
+            }
+            $nextInviteUserId = $inviter->invite_user_id;
+            $share = max(0, $commissionShareLevels[$level] ?? 0);
+            $commissionBalance = min(
+                $remainingCommission,
+                intdiv((int)$order->commission_balance * $share, 100)
+            );
+
+            if ($commissionBalance > 0) {
+                $alreadyPaid = CommissionLog::where('trade_no', $order->trade_no)
+                    ->where('invite_user_id', $inviteUserId)
+                    ->exists();
+
+                if (!$alreadyPaid) {
+                    if ((int)config('v2board.withdraw_close_enable', 0)) {
+                        $inviter->balance += $commissionBalance;
+                    } else {
+                        $inviter->commission_balance += $commissionBalance;
+                    }
+                    $inviter->saveOrFail();
+
+                    CommissionLog::create([
+                        'invite_user_id' => $inviteUserId,
+                        'user_id' => $order->user_id,
+                        'trade_no' => $order->trade_no,
+                        'order_amount' => $order->total_amount,
+                        'get_amount' => $commissionBalance
+                    ]);
+                    $remainingCommission -= $commissionBalance;
+                }
+            }
+
+            $inviteUserId = $nextInviteUserId;
         }
-        for ($l = 0; $l < $level; $l++) {
-            $inviter = User::find($inviteUserId);
-            if (!$inviter) continue;
-            if (!isset($commissionShareLevels[$l])) continue;
-            $commissionBalance = $order->commission_balance * ($commissionShareLevels[$l] / 100);
-            if (!$commissionBalance) continue;
-            if ((int)config('v2board.withdraw_close_enable', 0)) {
-                $inviter->balance = $inviter->balance + $commissionBalance;
-            } else {
-                $inviter->commission_balance = $inviter->commission_balance + $commissionBalance;
-            }
-            if (!$inviter->save()) {
-                DB::rollBack();
-                return false;
-            }
-            if (!CommissionLog::create([
-                'invite_user_id' => $inviteUserId,
-                'user_id' => $order->user_id,
-                'trade_no' => $order->trade_no,
-                'order_amount' => $order->total_amount,
-                'get_amount' => $commissionBalance
-            ])) {
-                DB::rollBack();
-                return false;
-            }
-            $inviteUserId = $inviter->invite_user_id;
-            // update order actual commission balance
-            $order->actual_commission_balance = $order->actual_commission_balance + $commissionBalance;
-        }
+
+        $order->actual_commission_balance = (int)CommissionLog::where('trade_no', $order->trade_no)
+            ->sum('get_amount');
         return true;
     }
-
 }

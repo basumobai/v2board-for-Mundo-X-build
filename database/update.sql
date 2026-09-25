@@ -883,3 +883,33 @@ CREATE TABLE IF NOT EXISTS `v2_server_mx` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Mundo X伺服器表';
 ALTER TABLE `v2_server_v2node`
 ADD `trusted_x_forwarded_for` varchar(255) COLLATE 'utf8mb4_general_ci' NULL COMMENT '信任的x-forwarded-for头部' AFTER `network_settings`;
+
+CREATE TABLE IF NOT EXISTS `v2_node_report` (
+    `report_id` char(32) NOT NULL,
+    `server_id` int(11) NOT NULL,
+    `server_type` char(11) NOT NULL,
+    `created_at` int(11) NOT NULL,
+    PRIMARY KEY (`report_id`),
+    KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='节点上报幂等记录';
+
+CREATE TABLE IF NOT EXISTS `v2_traffic_batch` (
+    `batch_id` char(32) NOT NULL,
+    `created_at` int(11) NOT NULL,
+    PRIMARY KEY (`batch_id`),
+    KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流量结算幂等记录';
+
+ALTER TABLE `v2_commission_log` ADD UNIQUE INDEX `trade_inviter` (`trade_no`, `invite_user_id`);
+ALTER TABLE `v2_commission_log` ADD INDEX `idx_commission_created_at` (`created_at`);
+ALTER TABLE `v2_order` ADD INDEX `idx_status_created` (`status`, `created_at`, `id`);
+ALTER TABLE `v2_order` ADD INDEX `idx_commission_queue` (`commission_status`, `status`, `updated_at`, `id`);
+ALTER TABLE `v2_order` ADD INDEX `idx_created_status` (`created_at`, `status`);
+ALTER TABLE `v2_order` ADD INDEX `idx_paid_status` (`paid_at`, `status`);
+ALTER TABLE `v2_stat_server` ADD INDEX `idx_type_record` (`record_type`, `record_at`);
+ALTER TABLE `v2_stat_user` ADD INDEX `idx_type_record_user` (`record_type`, `record_at`, `user_id`);
+ALTER TABLE `v2_ticket` ADD INDEX `idx_autoclose` (`status`, `reply_status`, `updated_at`, `id`);
+ALTER TABLE `v2_user` ADD INDEX `idx_group_access` (`group_id`, `banned`, `expired_at`, `id`);
+ALTER TABLE `v2_user` ADD INDEX `idx_auto_renewal` (`auto_renewal`, `expired_at`, `id`);
+ALTER TABLE `v2_user` ADD INDEX `idx_last_traffic` (`t`);
+ALTER TABLE `v2_user` ADD INDEX `idx_created_invite` (`created_at`, `invite_user_id`);

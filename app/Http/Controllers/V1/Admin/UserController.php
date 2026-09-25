@@ -76,21 +76,25 @@ class UserController extends Controller
         $total = $userModel->count();
         $res = $userModel->forPage($current, $pageSize)
             ->get();
-        $plan = Plan::get();
+        $planNames = Plan::pluck('name', 'id');
+        $aliveKeys = [];
+        foreach ($res as $user) {
+            $aliveKeys[] = 'ALIVE_IP_USER_' . $user->id;
+        }
+        $aliveData = empty($aliveKeys) ? [] : Cache::many($aliveKeys);
+
         for ($i = 0; $i < count($res); $i++) {
-            for ($k = 0; $k < count($plan); $k++) {
-                if ($plan[$k]['id'] == $res[$i]['plan_id']) {
-                    $res[$i]['plan_name'] = $plan[$k]['name'];
-                }
+            if (isset($planNames[$res[$i]['plan_id']])) {
+                $res[$i]['plan_name'] = $planNames[$res[$i]['plan_id']];
             }
             //统计在线设备
             $countalive = 0;
             $ips = [];
-            $ips_array = Cache::get('ALIVE_IP_USER_'. $res[$i]['id']);
+            $ips_array = $aliveData['ALIVE_IP_USER_' . $res[$i]['id']] ?? null;
             if ($ips_array) {
-                $countalive = $ips_array['alive_ip'];
+                $countalive = $ips_array['alive_ip'] ?? 0;
                 foreach($ips_array as $nodetypeid => $data) {
-                    if (!is_int($data) && isset($data['aliveips'])) {
+                    if ($nodetypeid !== 'alive_ip' && is_array($data) && isset($data['aliveips'])) {
                         foreach($data['aliveips'] as $ip_NodeId) {
                             $ip = explode("_", $ip_NodeId)[0];
                             $ips[] = $ip . '_' . $nodetypeid;

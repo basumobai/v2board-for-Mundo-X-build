@@ -14,7 +14,11 @@ trap stop TERM INT
 
 while true; do
     php artisan schedule:run --no-interaction
-    sleep 60 &
+    # Align the next pass to a wall-clock minute. A fixed sleep after the
+    # command drifts later on every run and can eventually skip due events.
+    now=$(date +%s)
+    delay=$((60 - now % 60))
+    sleep "$delay" &
     idle_pid=$!
     wait "$idle_pid" || true
     idle_pid=
