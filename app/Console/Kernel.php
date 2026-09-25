@@ -37,7 +37,9 @@ class Kernel extends ConsoleKernel
         $schedule->command('check:ticket')->everyMinute()->withoutOverlapping(5);
         $schedule->command('check:renewal')->dailyAt('22:30')->withoutOverlapping(180);
         // reset
-        $schedule->command('reset:traffic')->daily()->withoutOverlapping(120);
+        // Safe to retry after a deferred reset; traffic_reset_cycle prevents
+        // clearing the same user's allowance more than once in a day.
+        $schedule->command('reset:traffic')->everyFiveMinutes()->withoutOverlapping(120);
         $schedule->command('reset:log')->daily()->withoutOverlapping(120);
         // send
         $schedule->command('send:remindMail')->dailyAt('11:30')->withoutOverlapping(120);

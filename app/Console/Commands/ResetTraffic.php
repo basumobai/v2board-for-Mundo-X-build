@@ -49,6 +49,9 @@ class ResetTraffic extends Command
         }
 
         try {
+            // Legacy Redis counters must be settled before the reset boundary.
+            // New reports use their queued receipt time and the per-user boundary.
+            app(TrafficUpdate::class)->settleBeforeReset();
             $plansByMethod = Plan::query()
                 ->get(['id', 'reset_traffic_method'])
                 ->groupBy(function ($plan) {
@@ -80,6 +83,9 @@ class ResetTraffic extends Command
                         break;
                 }
             }
+        } catch (\Throwable $e) {
+            Log::error('流量重置延后，待结算流量或数据库操作失败', ['exception' => $e]);
+            return 1;
         } finally {
             $lock->release();
         }
@@ -107,10 +113,8 @@ class ResetTraffic extends Command
             return;
         }
         $this->retryTransaction(function () use ($builder) {
-            $builder->update([
-                'u' => 0,
-                'd' => 0
-            ]);
+            $builder->where('traffic_reset_cycle', '!=', (int)date('Ymd'))
+                ->update($this->resetValues());
         });
     }
 
@@ -120,10 +124,8 @@ class ResetTraffic extends Command
             return;
         }
         $this->retryTransaction(function () use ($builder) {
-            $builder->update([
-                'u' => 0,
-                'd' => 0
-            ]);
+            $builder->where('traffic_reset_cycle', '!=', (int)date('Ymd'))
+                ->update($this->resetValues());
         });
     }
 
@@ -153,11 +155,20 @@ class ResetTraffic extends Command
             return;
         }
         $this->retryTransaction(function () use ($ids) {
-            User::whereIn('id', $ids)->update([
-                'u' => 0,
-                'd' => 0
-            ]);
+            User::whereIn('id', $ids)
+                ->where('traffic_reset_cycle', '!=', (int)date('Ymd'))
+                ->update($this->resetValues());
         });
+    }
+
+    private function resetValues(): array
+    {
+        return [
+            'u' => 0,
+            'd' => 0,
+            'traffic_reset_at' => (int)round(microtime(true) * 1000000),
+            'traffic_reset_cycle' => (int)date('Ymd')
+        ];
     }
 
     private function retryTransaction(callable $callback): void

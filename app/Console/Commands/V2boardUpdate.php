@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Support\PerformanceSchema;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class V2boardUpdate extends Command
 {
@@ -55,9 +57,20 @@ class V2boardUpdate extends Command
             try {
                 DB::select(DB::raw($item));
             } catch (\Exception $e) {
+                // The historical update file contains non-repeatable DDL.
+                // Never mistake its best-effort pass for a verified migration.
+                Log::warning('Historical update SQL was skipped', ['sql' => $item, 'exception' => $e]);
             }
         }
+        try {
+            PerformanceSchema::ensure();
+        } catch (\Throwable $e) {
+            $this->error('必要数据库迁移失败：' . $e->getMessage());
+            Log::error('Performance schema migration failed', ['exception' => $e]);
+            return 1;
+        }
         \Artisan::call('horizon:terminate');
-        $this->info('更新完毕，队列服务已重启，你无需进行任何操作。');
+        $this->info('数据库迁移与校验完成。');
+        return 0;
     }
 }

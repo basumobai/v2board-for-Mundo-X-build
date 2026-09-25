@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\TrafficFetchJob;
+use App\Support\PerformanceSchema;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +34,8 @@ $userId = DB::table('v2_user')->insertGetId([
 
 try {
     Redis::del('v2board_upload_traffic', 'v2board_download_traffic', 'v2board_traffic_batches');
+    PerformanceSchema::ensure();
+    PerformanceSchema::ensure(); // Upgrade must be safe to rerun.
 
     $job = new TrafficFetchJob(
         [$userId => [100, 200]],
@@ -42,8 +45,10 @@ try {
     $job->handle();
     $job->handle();
 
-    assertSameValue(150, (int)Redis::hget('v2board_upload_traffic', $userId), 'Redis upload idempotency failed');
-    assertSameValue(300, (int)Redis::hget('v2board_download_traffic', $userId), 'Redis download idempotency failed');
+    $user = DB::table('v2_user')->where('id', $userId)->first();
+    assertSameValue(150, (int)$user->u, 'Direct MySQL charge was duplicated');
+    assertSameValue(300, (int)$user->d, 'Direct MySQL charge was duplicated');
+    assertSameValue(0, (int)Redis::hlen('v2board_upload_traffic'), 'New report used legacy Redis settlement');
 
     $userStat = DB::table('v2_stat_user')->where('user_id', $userId)->first();
     assertSameValue(100, (int)$userStat->u, 'User upload statistics were duplicated');
@@ -52,21 +57,52 @@ try {
     assertSameValue(100, (int)$serverStat->u, 'Server upload statistics were duplicated');
     assertSameValue(200, (int)$serverStat->d, 'Server download statistics were duplicated');
 
-    assertSameValue(0, Artisan::call('traffic:update'), 'Initial traffic settlement failed');
+    // If the report ledger is unavailable, the entire charge must roll back.
+    $failedJob = new TrafficFetchJob([$userId => [11, 13]], ['id' => $serverId, 'rate' => 1], 'vmess');
+    DB::statement('RENAME TABLE v2_node_report TO v2_node_report_probe_hold');
+    try {
+        try {
+            $failedJob->handle();
+            throw new RuntimeException('Missing report ledger did not stop the report');
+        } catch (\Illuminate\Database\QueryException $expected) {
+            // Database failure is expected; no partial charge may commit.
+        }
+        $user = DB::table('v2_user')->where('id', $userId)->first();
+        assertSameValue(150, (int)$user->u, 'Failed report partially charged upload');
+    } finally {
+        DB::statement('RENAME TABLE v2_node_report_probe_hold TO v2_node_report');
+    }
+    $failedJob->handle();
+    $failedJob->handle();
     $user = DB::table('v2_user')->where('id', $userId)->first();
-    assertSameValue(150, (int)$user->u, 'Settled upload is incorrect');
-    assertSameValue(300, (int)$user->d, 'Settled download is incorrect');
+    assertSameValue(161, (int)$user->u, 'Recovered report charged more than once');
+    assertSameValue(313, (int)$user->d, 'Recovered report charged more than once');
+
+    // A report accepted before a reset may be processed afterwards, but it
+    // cannot debit the new accounting period. Statistics still include it.
+    $lateJob = new TrafficFetchJob([$userId => [7, 9]], ['id' => $serverId, 'rate' => 1], 'vmess');
+    DB::table('v2_user')->where('id', $userId)->update([
+        'u' => 0, 'd' => 0,
+        'traffic_reset_at' => (int)round(microtime(true) * 1000000) + 1000000,
+        'traffic_reset_cycle' => (int)date('Ymd')
+    ]);
+    $lateJob->handle();
+    $lateJob->handle();
+    $user = DB::table('v2_user')->where('id', $userId)->first();
+    assertSameValue(0, (int)$user->u, 'Late report debited the new period');
+    assertSameValue(0, (int)$user->d, 'Late report debited the new period');
+    DB::table('v2_user')->where('id', $userId)->update(['traffic_reset_at' => 0]);
 
     assertSameValue(0, Artisan::call('traffic:update'), 'Empty traffic settlement failed');
     $user = DB::table('v2_user')->where('id', $userId)->first();
-    assertSameValue(150, (int)$user->u, 'An empty retry duplicated upload');
-    assertSameValue(300, (int)$user->d, 'An empty retry duplicated download');
+    assertSameValue(0, (int)$user->u, 'An empty legacy settlement changed upload');
+    assertSameValue(0, (int)$user->d, 'An empty legacy settlement changed download');
 
     Redis::hincrby('v2board_upload_traffic', $userId, 25);
     assertSameValue(0, Artisan::call('traffic:update'), 'Upload-only settlement failed');
     $user = DB::table('v2_user')->where('id', $userId)->first();
-    assertSameValue(175, (int)$user->u, 'Upload-only traffic was lost');
-    assertSameValue(300, (int)$user->d, 'Upload-only settlement changed download');
+    assertSameValue(25, (int)$user->u, 'Upload-only legacy traffic was lost');
+    assertSameValue(0, (int)$user->d, 'Upload-only settlement changed download');
 
     Redis::hincrby('v2board_upload_traffic', $userId, 40);
     Redis::hincrby('v2board_download_traffic', $userId, 60);
@@ -75,20 +111,43 @@ try {
         assertSameValue(1, Artisan::call('traffic:update'), 'A failed DB settlement was not reported');
         assertSameValue(1, (int)Redis::zcard('v2board_traffic_batches'), 'Failed traffic batch was not retained');
         $user = DB::table('v2_user')->where('id', $userId)->first();
-        assertSameValue(175, (int)$user->u, 'Failed settlement partially changed upload');
-        assertSameValue(300, (int)$user->d, 'Failed settlement partially changed download');
+        assertSameValue(25, (int)$user->u, 'Failed settlement partially changed upload');
+        assertSameValue(0, (int)$user->d, 'Failed settlement partially changed download');
     } finally {
         DB::statement('RENAME TABLE v2_traffic_batch_probe_hold TO v2_traffic_batch');
     }
 
+    $batchId = Redis::zrange('v2board_traffic_batches', 0, 0)[0];
     assertSameValue(0, Artisan::call('traffic:update'), 'Retained traffic batch did not recover');
     $user = DB::table('v2_user')->where('id', $userId)->first();
-    assertSameValue(215, (int)$user->u, 'Recovered upload is incorrect');
-    assertSameValue(360, (int)$user->d, 'Recovered download is incorrect');
+    assertSameValue(65, (int)$user->u, 'Recovered upload is incorrect');
+    assertSameValue(60, (int)$user->d, 'Recovered download is incorrect');
     assertSameValue(0, (int)Redis::zcard('v2board_traffic_batches'), 'Recovered batch was not acknowledged');
+
+    // Simulate a stop after MySQL COMMIT but before Redis acknowledgement.
+    Redis::hset('v2board_traffic_batch:' . $batchId . ':u', $userId, 40);
+    Redis::zadd('v2board_traffic_batches', time(), $batchId);
+    assertSameValue(0, Artisan::call('traffic:update'), 'Committed batch retry failed');
+    $user = DB::table('v2_user')->where('id', $userId)->first();
+    assertSameValue(65, (int)$user->u, 'Committed batch was charged twice');
+
+    // A reset must process all legacy batches, including more than one
+    // scheduler's 100-batch limit, before clearing the allowance.
+    for ($i = 0; $i < 105; $i++) {
+        $id = bin2hex(random_bytes(16));
+        Redis::hset('v2board_traffic_batch:' . $id . ':u', $userId, 1);
+        Redis::zadd('v2board_traffic_batches', time(), $id);
+    }
+    app(\App\Console\Commands\TrafficUpdate::class)->settleBeforeReset();
+    $user = DB::table('v2_user')->where('id', $userId)->first();
+    assertSameValue(170, (int)$user->u, 'Reset barrier missed old batches');
+    assertSameValue(0, (int)Redis::zcard('v2board_traffic_batches'), 'Reset barrier left old batches');
 } finally {
     if (DB::getSchemaBuilder()->hasTable('v2_traffic_batch_probe_hold')) {
         DB::statement('RENAME TABLE v2_traffic_batch_probe_hold TO v2_traffic_batch');
+    }
+    if (DB::getSchemaBuilder()->hasTable('v2_node_report_probe_hold')) {
+        DB::statement('RENAME TABLE v2_node_report_probe_hold TO v2_node_report');
     }
     DB::table('v2_stat_user')->where('user_id', $userId)->delete();
     DB::table('v2_stat_server')->where('server_id', $serverId)->delete();

@@ -14,6 +14,7 @@ class TrafficUpdate extends Command
     private const DOWNLOAD_KEY = 'v2board_download_traffic';
     private const PENDING_KEY = 'v2board_traffic_batches';
     private const LOCK_KEY = 'v2board_traffic_accounting';
+    private const MAX_BATCH_AGE = 30 * 86400;
 
     /**
      * The name and signature of the console command.
@@ -42,11 +43,7 @@ class TrafficUpdate extends Command
         }
 
         try {
-            $this->rotateActiveCounters();
-            $batchIds = Redis::zrange(self::PENDING_KEY, 0, 99);
-            foreach ($batchIds as $batchId) {
-                $this->processBatch((string)$batchId);
-            }
+            $this->settle(100);
         } catch (\Throwable $e) {
             Log::error('流量更新失败', [
                 'exception' => $e
@@ -57,6 +54,31 @@ class TrafficUpdate extends Command
         }
 
         return 0;
+    }
+
+    /** Called by reset:traffic while it owns the same lock. */
+    public function settleBeforeReset(): void
+    {
+        $this->settle(1000);
+        if (Redis::zcard(self::PENDING_KEY) > 0) {
+            throw new \RuntimeException('Unsettled legacy traffic; reset deferred');
+        }
+    }
+
+    private function settle(int $limit): void
+    {
+        $this->rotateActiveCounters();
+        $processed = 0;
+        while ($processed < $limit) {
+            $batchIds = Redis::zrange(self::PENDING_KEY, 0, min(99, $limit - $processed - 1));
+            if (!$batchIds) {
+                return;
+            }
+            foreach ($batchIds as $batchId) {
+                $this->processBatch((string)$batchId);
+                $processed++;
+            }
+        }
     }
 
     private function rotateActiveCounters(): void
@@ -97,8 +119,12 @@ LUA;
     private function processBatch(string $batchId): void
     {
         if (!preg_match('/^[a-f0-9]{32}$/', $batchId)) {
-            Redis::zrem(self::PENDING_KEY, $batchId);
-            return;
+            throw new \RuntimeException('Invalid traffic batch identifier');
+        }
+
+        $createdAt = (int)Redis::zscore(self::PENDING_KEY, $batchId);
+        if ($createdAt <= 0 || $createdAt < time() - self::MAX_BATCH_AGE) {
+            throw new \RuntimeException('Traffic batch is too old for automatic settlement');
         }
 
         $uploadKey = $this->batchKey($batchId, 'u');
@@ -107,6 +133,10 @@ LUA;
             Redis::hgetall($uploadKey),
             Redis::hgetall($downloadKey)
         );
+
+        if (empty($traffic) && !DB::table('v2_traffic_batch')->where('batch_id', $batchId)->exists()) {
+            throw new \RuntimeException('Pending traffic batch lost its Redis counters');
+        }
 
         DB::transaction(function () use ($batchId, $traffic) {
             $inserted = DB::table('v2_traffic_batch')->insertOrIgnore([

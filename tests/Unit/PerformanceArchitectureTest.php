@@ -16,8 +16,9 @@ class PerformanceArchitectureTest extends TestCase
         $this->assertStringNotContainsString('StatUserJob::dispatch', $userService);
         $this->assertStringNotContainsString('StatServerJob::dispatch', $userService);
         $this->assertStringContainsString("DB::table('v2_node_report')->insertOrIgnore", $trafficJob);
-        $this->assertStringContainsString("redis.call('SISMEMBER'", $trafficJob);
-        $this->assertStringContainsString("'v2board_traffic_reports:legacy'", $trafficJob);
+        $this->assertStringContainsString('$this->chargeUsers();', $trafficJob);
+        $this->assertStringContainsString('AND traffic_reset_at < ?', $trafficJob);
+        $this->assertStringContainsString('MAX_REPORT_AGE', $trafficJob);
         $this->assertStringContainsString('$this->server = [', $trafficJob);
         $this->assertStringContainsString("redis.call('RENAME'", $trafficUpdate);
         $this->assertStringContainsString("DB::table('v2_traffic_batch')->insertOrIgnore", $trafficUpdate);
@@ -34,6 +35,9 @@ class PerformanceArchitectureTest extends TestCase
             $this->assertStringContainsString('idx_auto_renewal', $sql, $path);
             $this->assertStringContainsString('idx_commission_queue', $sql, $path);
         }
+        $this->assertStringContainsString('traffic_reset_at', $this->read('database/install.sql'));
+        $this->assertStringContainsString('PerformanceSchema::ensure()', $this->read('app/Console/Commands/V2boardUpdate.php'));
+        $this->assertStringContainsString('Duplicate commission logs', $this->read('app/Support/PerformanceSchema.php'));
     }
 
     public function testWorkersNoLongerUseArtificialUnboundedRuntimeSettings(): void

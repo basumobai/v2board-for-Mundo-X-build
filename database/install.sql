@@ -635,6 +635,8 @@ CREATE TABLE `v2_user` (
                            `remarks` text,
                            `created_at` int(11) NOT NULL,
                            `updated_at` int(11) NOT NULL,
+                           `traffic_reset_at` bigint NOT NULL DEFAULT 0,
+                           `traffic_reset_cycle` int NOT NULL DEFAULT 0,
                            PRIMARY KEY (`id`),
                            UNIQUE KEY `email` (`email`),
                            UNIQUE KEY `token` (`token`),

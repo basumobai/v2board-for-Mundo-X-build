@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
@@ -21,7 +22,11 @@ class TrafficFetchJob implements ShouldQueue
     protected $protocol = '';
     protected $reportId;
     protected $reportedAt;
+    protected $reportedAtMicros;
     protected $consolidated = false;
+
+    // Reject stale manual replays before the report ledger's retention ends.
+    private const MAX_REPORT_AGE = 30 * 86400;
 
     public $tries = 3;
     public $timeout = 60;
@@ -33,9 +38,9 @@ class TrafficFetchJob implements ShouldQueue
         $this->data = $this->normalizeData($data);
         $this->serverId = (int)($server['id'] ?? 0);
         $this->serverRate = $this->normalizeRate($server['rate'] ?? 1);
-        // Keep only the fields understood by workers from the previous
-        // release. This preserves rolling-deploy compatibility without
-        // serializing the full server model into every queue payload.
+        // Keep old payload fields for deserialization; deployment must drain
+        // old workers before new producers start because old workers do not
+        // write the consolidated report's statistics.
         $this->server = [
             'id' => $this->serverId,
             'rate' => $this->serverRate
@@ -43,15 +48,13 @@ class TrafficFetchJob implements ShouldQueue
         $this->protocol = (string)$protocol;
         $this->reportId = bin2hex(random_bytes(16));
         $this->reportedAt = time();
+        $this->reportedAtMicros = (int)round(microtime(true) * 1000000);
         $this->consolidated = true;
     }
 
     /**
-     * Persist one node report exactly once per destination.
-     *
-     * Redis and MySQL cannot share a transaction, so each side has its own
-     * idempotency marker. A retry can therefore finish an interrupted report
-     * without incrementing traffic or statistics twice.
+     * New reports charge the user and record statistics in one MySQL transaction.
+     * Only legacy queued jobs use the old Redis settlement path.
      */
     public function handle()
     {
@@ -63,9 +66,25 @@ class TrafficFetchJob implements ShouldQueue
             throw new \InvalidArgumentException('Invalid server metadata in traffic report');
         }
 
-        $this->incrementTrafficOnce();
         if ($this->consolidated) {
-            $this->persistStatisticsOnce();
+            if ($this->reportedAt < time() - self::MAX_REPORT_AGE) {
+                throw new \RuntimeException('Traffic report is too old for automatic settlement');
+            }
+            $this->persistReportOnce();
+        } else {
+            Cache::lock('v2board_traffic_accounting', 120)->block(30, function () {
+                // Old jobs can arrive after a subscription reset. Charge only
+                // users whose current accounting period includes this report.
+                $resetTimes = DB::table('v2_user')->whereIn('id', array_keys($this->data))
+                    ->pluck('traffic_reset_at', 'id');
+                $this->data = array_filter($this->data, function ($bytes, $userId) use ($resetTimes) {
+                    return isset($resetTimes[$userId])
+                        && (int)$resetTimes[$userId] < $this->reportedAt * 1000000;
+                }, ARRAY_FILTER_USE_BOTH);
+                if ($this->data) {
+                    $this->incrementTrafficOnce();
+                }
+            });
         }
     }
 
@@ -78,12 +97,7 @@ class TrafficFetchJob implements ShouldQueue
             $arguments[] = (int)round($trafficData[1] * $this->serverRate);
         }
 
-        // Legacy payloads do not contain a stable report timestamp. Keep
-        // their IDs in one short-lived migration set so a retry that crosses
-        // an hour boundary cannot increment Redis twice.
-        $dedupeKey = $this->consolidated
-            ? 'v2board_traffic_reports:' . gmdate('YmdH', $this->reportedAt)
-            : 'v2board_traffic_reports:legacy';
+        $dedupeKey = 'v2board_traffic_reports:legacy:' . gmdate('YmdH', $this->reportedAt);
         $script = <<<'LUA'
 if redis.call('SISMEMBER', KEYS[1], ARGV[1]) == 1 then
     return 0
@@ -105,7 +119,7 @@ for i = 1, count do
 end
 
 redis.call('SADD', KEYS[1], ARGV[1])
-redis.call('EXPIRE', KEYS[1], 172800)
+redis.call('EXPIRE', KEYS[1], 2678400)
 return 1
 LUA;
 
@@ -119,7 +133,7 @@ LUA;
         );
     }
 
-    private function persistStatisticsOnce(): void
+    private function persistReportOnce(): void
     {
         $server = [
             'id' => $this->serverId,
@@ -139,9 +153,47 @@ LUA;
                 return;
             }
 
+            $this->chargeUsers();
             (new StatUserJob($this->data, $server, $this->protocol, 'd', $recordAt))->persist();
             (new StatServerJob($this->data, $server, $this->protocol, 'd', $recordAt))->persist();
         }, 3);
+    }
+
+    private function chargeUsers(): void
+    {
+        $traffic = [];
+        foreach ($this->data as $userId => $bytes) {
+            $traffic[] = [
+                (int)$userId,
+                (int)round($bytes[0] * $this->serverRate),
+                (int)round($bytes[1] * $this->serverRate)
+            ];
+        }
+        foreach (array_chunk($traffic, 500) as $chunk) {
+            $uploadCases = [];
+            $downloadCases = [];
+            $uploadBindings = [];
+            $downloadBindings = [];
+            $ids = [];
+            foreach ($chunk as [$id, $upload, $download]) {
+                $uploadCases[] = 'WHEN ? THEN ?';
+                array_push($uploadBindings, $id, $upload);
+                $downloadCases[] = 'WHEN ? THEN ?';
+                array_push($downloadBindings, $id, $download);
+                $ids[] = $id;
+            }
+            $now = time();
+            DB::update(
+                'UPDATE v2_user SET' .
+                ' u = u + CASE id ' . implode(' ', $uploadCases) . ' ELSE 0 END,' .
+                ' d = d + CASE id ' . implode(' ', $downloadCases) . ' ELSE 0 END,' .
+                ' t = ?, updated_at = ?' .
+                ' WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')' .
+                ' AND traffic_reset_at < ?',
+                array_merge($uploadBindings, $downloadBindings, [$now, $now], $ids,
+                    [$this->reportedAtMicros ?: $this->reportedAt * 1000000])
+            );
+        }
     }
 
     private function normalizeData(array $data): array
@@ -196,10 +248,12 @@ LUA;
         $this->data = $this->normalizeData((array)$this->data);
         $this->serverId = (int)($this->server['id'] ?? 0);
         $this->serverRate = $this->normalizeRate($this->server['rate'] ?? 1);
-        $this->reportedAt = time();
+        $payload = $this->job ? json_decode($this->job->getRawBody(), true) : null;
+        $this->reportedAt = isset($payload['pushedAt']) ? (int)$payload['pushedAt'] : 0;
         $jobId = $this->job ? $this->job->getJobId() : null;
-        $this->reportId = $jobId
-            ? substr(hash('sha256', 'legacy-traffic:' . $jobId), 0, 32)
-            : bin2hex(random_bytes(16));
+        if (!$jobId || $this->reportedAt <= 0 || $this->reportedAt < time() - self::MAX_REPORT_AGE) {
+            throw new \RuntimeException('Legacy traffic job needs manual reconciliation');
+        }
+        $this->reportId = substr(hash('sha256', 'legacy-traffic:' . $jobId), 0, 32);
     }
 }
