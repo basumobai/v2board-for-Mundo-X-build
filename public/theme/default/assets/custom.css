@@ -1,0 +1,211 @@
+@charset "UTF-8";
+
+/* Default customer theme: light surfaces with depth in the navigation layer. */
+body.mundo-user-shell {
+    --user-ink: #1d293d;
+    --user-muted: #59677d;
+    --user-line: rgba(105, 127, 159, .20);
+    --user-blue: #2865d9;
+    --user-focus: rgba(40, 101, 217, .32);
+    min-width: 320px;
+    color: var(--user-ink);
+    background: radial-gradient(circle at 80% -10%, #dfe9fc 0, transparent 38rem),
+        radial-gradient(circle at 4% 60%, #eaf4fa 0, transparent 30rem), #f3f6fb;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.mundo-user-shell #page-container,
+.mundo-user-shell #main-container {
+    background: transparent;
+}
+
+/* Navigation floats over the page; content remains opaque and readable. */
+.mundo-user-shell #page-header {
+    color: var(--user-ink);
+    background: rgba(255, 255, 255, .78) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .92);
+    box-shadow: 0 8px 30px rgba(27, 51, 91, .08);
+    -webkit-backdrop-filter: blur(22px) saturate(1.3);
+    backdrop-filter: blur(22px) saturate(1.3);
+}
+
+.mundo-user-shell #sidebar {
+    color: var(--user-ink);
+    background: rgba(255, 255, 255, .88) !important;
+    border-right: 1px solid rgba(255, 255, 255, .94);
+    box-shadow: 8px 0 32px rgba(27, 51, 91, .06);
+    -webkit-backdrop-filter: blur(22px) saturate(1.2);
+    backdrop-filter: blur(22px) saturate(1.2);
+}
+
+.mundo-user-shell #sidebar .bg-header-dark,
+.mundo-user-shell #sidebar .bg-sidebar-dark {
+    background: transparent !important;
+}
+
+.mundo-user-shell #sidebar .nav-main-link,
+.mundo-user-shell #sidebar .nav-main-link-icon,
+.mundo-user-shell #sidebar .nav-main-heading,
+.mundo-user-shell #page-header .content-header,
+.mundo-user-shell #page-header .btn-dual {
+    color: var(--user-muted) !important;
+}
+
+.mundo-user-shell #sidebar .nav-main-link {
+    margin: 3px 9px;
+    border-radius: 11px;
+    transition: background .18s ease, color .18s ease;
+}
+
+.mundo-user-shell #sidebar .nav-main-link:hover,
+.mundo-user-shell #sidebar .nav-main-link.active,
+.mundo-user-shell #sidebar .nav-main-item.open > .nav-main-link {
+    color: var(--user-blue) !important;
+    background: rgba(40, 101, 217, .10) !important;
+}
+
+.mundo-user-shell #sidebar .nav-main-link:hover .nav-main-link-icon,
+.mundo-user-shell #sidebar .nav-main-link.active .nav-main-link-icon {
+    color: var(--user-blue) !important;
+}
+
+.mundo-user-shell .v2board-container-title,
+.mundo-user-shell .v2board-container-title.text-white {
+    color: var(--user-ink) !important;
+    font-weight: 650;
+    letter-spacing: -.02em;
+}
+
+.mundo-user-shell .block {
+    overflow: hidden;
+    color: var(--user-ink);
+    background: #fff;
+    border: 1px solid var(--user-line);
+    border-radius: 18px;
+    box-shadow: 0 2px 5px rgba(23, 42, 76, .035), 0 16px 42px rgba(23, 42, 76, .065);
+}
+
+.mundo-user-shell .block.block-rounded,
+.mundo-user-shell .block.block-rounded > .block-header,
+.mundo-user-shell .block.block-rounded > .block-content:first-child {
+    border-radius: 18px;
+}
+
+.mundo-user-shell .block-header,
+.mundo-user-shell .block-header-default {
+    color: var(--user-ink);
+    background: #f9fbff;
+    border-bottom: 1px solid var(--user-line);
+}
+
+.mundo-user-shell .block-title,
+.mundo-user-shell h1,
+.mundo-user-shell h2,
+.mundo-user-shell h3,
+.mundo-user-shell h4 {
+    color: var(--user-ink);
+    letter-spacing: -.02em;
+}
+
+.mundo-user-shell .v2board-shortcuts-item {
+    border-color: var(--user-line);
+    transition: background .18s ease, transform .18s ease;
+}
+
+.mundo-user-shell .v2board-shortcuts-item:hover {
+    background: #f4f8ff;
+    transform: translateY(-1px);
+}
+
+.mundo-user-shell .v2board-shortcuts-item > .description,
+.mundo-user-shell .text-muted {
+    color: var(--user-muted) !important;
+    opacity: 1;
+}
+
+.mundo-user-shell .btn,
+.mundo-user-shell .form-control,
+.mundo-user-shell .ant-btn,
+.mundo-user-shell .ant-input,
+.mundo-user-shell .ant-select-selection {
+    border-radius: 10px;
+}
+
+.mundo-user-shell .btn-primary,
+.mundo-user-shell .ant-btn-primary {
+    color: #fff;
+    background: var(--user-blue);
+    border-color: var(--user-blue);
+    box-shadow: 0 5px 13px rgba(40, 101, 217, .16);
+}
+
+.mundo-user-shell .btn-primary:hover,
+.mundo-user-shell .ant-btn-primary:hover {
+    background: #1e57c0;
+    border-color: #1e57c0;
+}
+
+.mundo-user-shell :is(a, button, input, select, textarea, [role="button"]):focus-visible {
+    outline: 3px solid var(--user-focus);
+    outline-offset: 2px;
+}
+
+.mundo-user-shell .form-control:focus,
+.mundo-user-shell .ant-input:focus {
+    border-color: var(--user-blue);
+    box-shadow: 0 0 0 3px var(--user-focus);
+}
+
+.mundo-user-shell .table thead th,
+.mundo-user-shell .ant-table-thead > tr > th {
+    color: var(--user-muted);
+    background: #f8faff;
+    border-color: var(--user-line);
+}
+
+.mundo-user-shell .table td,
+.mundo-user-shell .ant-table-tbody > tr > td {
+    border-color: var(--user-line);
+}
+
+.mundo-user-shell .v2board-auth-box > div {
+    padding: 20px;
+}
+
+.mundo-user-shell .v2board-auth-box .block,
+.mundo-user-shell .v2board-auth-box .bg-white {
+    background: rgba(255, 255, 255, .94) !important;
+    border-radius: 20px;
+    box-shadow: 0 25px 80px rgba(27, 51, 91, .18);
+}
+
+.mundo-user-shell .v2board-background {
+    background-color: #eaf0fa;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+    .mundo-user-shell #page-header,
+    .mundo-user-shell #sidebar {
+        background: #fff !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .mundo-user-shell .block {
+        border-radius: 14px;
+        box-shadow: 0 6px 22px rgba(23, 42, 76, .06);
+    }
+
+    .mundo-user-shell .v2board-auth-box > div {
+        padding: 14px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mundo-user-shell .nav-main-link,
+    .mundo-user-shell .v2board-shortcuts-item {
+        transition: none;
+        transform: none;
+    }
+}

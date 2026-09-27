@@ -5,10 +5,10 @@
     <link rel="stylesheet" href="/theme/{{$theme}}/assets/components.chunk.css?v={{$version}}">
     <link rel="stylesheet" href="/theme/{{$theme}}/assets/umi.css?v={{$version}}">
     @if (file_exists(public_path("/theme/{$theme}/assets/custom.css")))
-        <link rel="stylesheet" href="/theme/{{$theme}}/assets/custom.css?v={{$version}}">
+        <link rel="stylesheet" href="/theme/{{$theme}}/assets/custom.css?v={{$frontend_ui_version ?? $version}}">
     @endif
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     @php ($colors = [
         'darkblue' => '#3b5998',
         'black' => '#343a40',
@@ -53,7 +53,7 @@
     <script src="/theme/{{$theme}}/assets/i18n/fa-IR.js?v={{$version}}"></script>
 </head>
 
-<body>
+<body class="mundo-user-shell">
 <div id="root"></div>
 {!! $theme_config['custom_html'] !!}
 <script src="/theme/{{$theme}}/assets/vendors.async.js?v={{$version}}"></script>
