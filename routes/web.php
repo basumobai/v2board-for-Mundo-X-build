@@ -64,7 +64,7 @@ Route::get('/' . config('v2board.secure_path', config('v2board.frontend_admin_pa
     return view('admin', [
         'title' => config('v2board.app_name', 'V2Board'),
         'theme_sidebar' => config('v2board.frontend_theme_sidebar', 'light'),
-        'theme_header' => config('v2board.frontend_theme_header', 'dark'),
+        'theme_header' => config('v2board.frontend_theme_header', 'light'),
         'theme_color' => config('v2board.frontend_theme_color', 'default'),
         'background_url' => config('v2board.frontend_background_url'),
         'version' => config('app.version'),
