@@ -83,7 +83,7 @@ const browser = await chromium.launch({ headless: true,
 });
 try {
   for (const width of (process.env.UI_KIND === 'user' ? [] : [1440, 390])) {
-    const context = await browser.newContext({ viewport: { width, height: 900 }, isMobile: width === 390, hasTouch: width === 390, ...(width === 390 ? { userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36' } : {}) });
+    const context = await browser.newContext({ locale:'zh-CN', viewport: { width, height: 900 }, isMobile: width === 390, hasTouch: width === 390, ...(width === 390 ? { userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36' } : {}) });
     const page = await context.newPage();
     page.setDefaultTimeout(10000);
     const errors = []; page.on('pageerror', e => errors.push(e.message));
@@ -198,7 +198,7 @@ try {
     await context.close();
   }  if (existsSync(join(root, 'public/theme/default/assets/custom.css'))) {
     for (const width of [1440, 390]) {
-      const context = await browser.newContext({viewport:{width,height:900},isMobile:width===390,hasTouch:width===390,
+      const context = await browser.newContext({locale:'zh-CN',viewport:{width,height:900},isMobile:width===390,hasTouch:width===390,
         ...(width===390 ? {userAgent:'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36'} : {})});
       const page = await context.newPage(); page.setDefaultTimeout(10000);
       const errors=[]; page.on('pageerror',e=>errors.push(e.message));
@@ -218,7 +218,7 @@ try {
         await page.screenshot({path:join(output,`user-${route}-${width}.png`)});
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`User ${route} overflows at ${width}`);
         if(route==='profile') {
-          await page.getByRole('button',{name:'Reset',exact:true}).click();
+          await page.getByRole('button',{name:/重置|Reset/}).click();
           await page.locator('.ant-modal-content').waitFor();
           await page.waitForTimeout(300);
           await page.screenshot({path:join(output,`user-reset-modal-${width}.png`)});
