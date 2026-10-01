@@ -101,6 +101,8 @@ try {
       await page.screenshot({ path: join(output, `admin-${route.replace('/', '-')}-${width}.png`) });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Page overflows at ${width}: ${route}`);
       if (route === 'user') {
+        assert.equal(await page.locator('.ant-table-fixed-right tbody td').first().evaluate(el=>getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)', 'Fixed cells must be opaque');
+        await page.locator('.ant-table-body').first().evaluate(el=>{el.scrollLeft=300;});
         await page.locator('.ant-table-fixed-right .ant-dropdown-trigger').first().click();
         await page.locator('.ant-dropdown-menu:visible').waitFor();
         await page.screenshot({ path: join(output, `admin-user-menu-${width}.png`) });
@@ -111,6 +113,15 @@ try {
         const box = await page.locator('.ant-drawer-content-wrapper').boundingBox();
         assert.ok(box.x >= -1 && box.x + box.width <= width + 1, 'Drawer leaves viewport');
         await page.screenshot({ path: join(output, `admin-user-drawer-${width}.png`) });
+        if (width === 390) {
+          await page.setViewportSize({width, height:600});
+          await page.locator('.ant-drawer-body textarea').last().scrollIntoViewIfNeeded();
+          const field = await page.locator('.ant-drawer-body textarea').last().boundingBox();
+          const footer = await page.locator('.v2board-drawer-action').boundingBox();
+          assert.ok(footer.y + footer.height <= 601 && field.y + field.height <= footer.y + 1, 'Drawer footer obscures last field at short viewport');
+          await page.screenshot({path:join(output, 'admin-user-drawer-short-390.png')});
+          await page.setViewportSize({width,height:900});
+        }
         await page.locator('.v2board-drawer-action .ant-btn').first().click();
         await page.locator('.ant-table-fixed-right .ant-dropdown-trigger').first().click();
         await page.locator('.ant-dropdown-menu:visible').getByText('删除用户', {exact:true}).click();
@@ -131,6 +142,20 @@ try {
         await page.locator('.v2board-drawer-action .ant-btn').first().click();
 
       }
+    }
+    if (width === 390) {
+      await page.getByRole('button', {name:'打开导航',exact:true}).click();
+      await page.waitForTimeout(500);
+      console.log('nav',await page.locator('#page-container').getAttribute('class'),await page.locator('#sidebar').boundingBox());
+      await page.screenshot({path:join(output,'admin-mobile-nav-390.png')});
+      assert.ok((await page.locator('#sidebar').boundingBox()).x >= -1, 'Mobile navigation stays offscreen');
+      await page.locator('.v2board-nav-mask').click({position:{x:350,y:400}});
+      const zoom = await context.newCDPSession(page);
+      assert.ok(!/user-scalable\s*=\s*no|maximum-scale\s*=\s*1(?:[,;\s]|$)/i.test(await page.locator('meta[name=viewport]').getAttribute('content')), 'Viewport blocks zoom');
+      await zoom.send('Emulation.setPageScaleFactor', {pageScaleFactor:1.5});
+      assert.ok(await page.evaluate(()=>visualViewport.scale>1), 'Mobile zoom emulation did not increase scale');
+      await zoom.send('Emulation.setPageScaleFactor', {pageScaleFactor:1});
+      await zoom.detach();
     }
     for (const color of ['default', 'green', 'black', 'darkblue']) {
       for (const header of ['light', 'dark']) {
