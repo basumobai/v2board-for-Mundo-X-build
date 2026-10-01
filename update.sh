@@ -114,7 +114,7 @@ for attempt in $(seq 1 120); do
 done
 docker compose stop horizon
 # A quiescent source/database/Redis snapshot is taken before any migration.
-tar --exclude=.git --exclude=vendor --exclude=node_modules --exclude=.install.lock \
+tar --exclude=./.git --exclude=./vendor --exclude=./node_modules --exclude=./.install.lock \
     -czf "$backup_dir/project.tar.gz" -C "$project_dir" .
 docker run --rm --network host -v "$backup_dir:/backup:ro" -v "$project_dir:/www:ro" \
     --entrypoint mysqldump mysql:8.4 --defaults-extra-file=/backup/mysql-client.cnf \
