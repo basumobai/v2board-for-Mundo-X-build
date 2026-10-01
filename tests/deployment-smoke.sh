@@ -83,3 +83,41 @@ for ((i=0; i<30; i++)); do
 done
 [[ -f $test_dir/a/storage/logs/deployment-queue-probe && ! -f $test_dir/b/storage/logs/deployment-queue-probe ]]
 printf 'Two-instance install, HTTP, restart, Redis isolation and production queue checks passed.\n'
+
+# Exercise a real safe update, including MySQL/Redis snapshots, against panel A.
+(
+    cd "$test_dir/a"
+    git init -b master
+    git add .
+    git -c user.name=CI -c user.email=ci@example.test commit -m 'Pre-update fixture'
+    git clone --bare . "$test_dir/update-origin.git"
+    git remote add origin "$test_dir/update-origin.git"
+    git clone "$test_dir/update-origin.git" "$test_dir/update-source"
+    (
+        cd "$test_dir/update-source"
+        printf upgraded > update-probe
+        git add update-probe
+        git -c user.name=CI -c user.email=ci@example.test commit -m 'Update fixture'
+        git push origin master
+    )
+    before_env=$(sha256sum .env)
+    before_config=$(sha256sum config/v2board.php)
+    before_theme=$(sha256sum config/theme/default.php)
+    UPDATE_BACKUP_ROOT="$test_dir/backups" bash update.sh
+    [[ $(cat update-probe) == upgraded ]]
+    [[ $(sha256sum .env) == "$before_env" ]]
+    [[ $(sha256sum config/v2board.php) == "$before_config" ]]
+    [[ $(sha256sum config/theme/default.php) == "$before_theme" ]]
+    [[ $(docker compose exec -T redis redis-cli -s /data/redis.sock GET deployment-probe) == panel-a ]]
+    backup=$(find "$test_dir/backups" -name COMPLETE -printf '%h\n')
+    [[ -n $backup && -s $backup/database.sql ]]
+    (cd "$backup" && sha256sum -c SHA256SUMS)
+    # Restore the SQL snapshot into a separate empty schema on the disposable
+    # CI database. Original database names are replaced only in this test copy.
+    sed 's/`panel_a`/`panel_restore`/g' "$backup/database.sql" | \
+        docker exec -i -e MYSQL_PWD=ci-only-password "$mysql_name" mysql -uroot
+    docker exec -e MYSQL_PWD=ci-only-password "$mysql_name" mysql -uroot \
+        -e 'SELECT COUNT(*) FROM panel_restore.v2_user;'
+    docker compose run --rm -T --no-deps installer php docker/healthcheck.php gateway
+)
+printf 'Safe update preserves configuration and Redis; database backup restores successfully.\n'

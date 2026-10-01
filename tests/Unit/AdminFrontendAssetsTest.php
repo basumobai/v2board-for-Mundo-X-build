@@ -22,7 +22,7 @@ class AdminFrontendAssetsTest extends TestCase
         $this->assertStringContainsString('/assets/admin/custom.js?v={{$admin_ui_version}}', $view);
 
         $routes = file_get_contents($this->projectPath('routes/web.php'));
-        $this->assertStringContainsString('clearstatcache(true, $customCssPath)', $routes);
+        $this->assertStringContainsString('FrontendAssets::version(', $routes);
         $this->assertStringContainsString("'admin_ui_version' =>", $routes);
     }
 

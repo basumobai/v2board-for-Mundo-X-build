@@ -7,30 +7,28 @@
     function keepOverrideStylesheetLast() {
         var stylesheet = document.getElementById('mundo-admin-overrides');
         var themeStylesheets;
-        var themeStylesheet;
 
         if (!stylesheet) {
             return;
         }
 
         themeStylesheets = document.head.querySelectorAll('link[rel="stylesheet"]');
-        Array.prototype.some.call(themeStylesheets, function (candidate) {
-            if (candidate !== stylesheet && candidate.href.indexOf('/theme/') !== -1) {
-                themeStylesheet = candidate;
-                return true;
+        Array.prototype.forEach.call(themeStylesheets, function (candidate) {
+            if (candidate === stylesheet || candidate.href.indexOf('/theme/') === -1) {
+                return;
             }
-            return false;
+            var version = window.settings && window.settings.ui_version;
+            if (version) {
+                var url = new URL(candidate.href, document.baseURI);
+                if (url.searchParams.get('v') !== version) {
+                    url.searchParams.set('v', version);
+                    candidate.href = url.href;
+                }
+            }
+            if (stylesheet.compareDocumentPosition(candidate) & window.Node.DOCUMENT_POSITION_FOLLOWING) {
+                candidate.parentNode.insertBefore(stylesheet, candidate.nextSibling);
+            }
         });
-
-        if (
-            themeStylesheet &&
-            (
-                stylesheet.compareDocumentPosition(themeStylesheet) &
-                window.Node.DOCUMENT_POSITION_FOLLOWING
-            )
-        ) {
-            themeStylesheet.parentNode.insertBefore(stylesheet, themeStylesheet.nextSibling);
-        }
     }
 
     var iconLabels = [

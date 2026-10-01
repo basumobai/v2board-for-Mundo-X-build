@@ -694,7 +694,7 @@ a.block.block-link-pop:hover {
 .ant-table-tbody > tr > td {
     padding: 14px 15px;
     color: var(--mundo-ink-soft);
-    background: rgba(255, 255, 255, 0.96);
+    background: #fff;
     border-bottom: 1px solid rgba(126, 143, 171, 0.16);
     transition: background-color 140ms var(--mundo-ease);
 }
@@ -747,6 +747,8 @@ a.block.block-link-pop:hover {
 
 .v2board-table-action {
     display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
     align-items: center;
     gap: 10px;
     padding: 14px 16px !important;
@@ -760,7 +762,8 @@ a.block.block-link-pop:hover {
 
 .v2board-table-action > .ant-input {
     width: min(320px, 42vw) !important;
-    min-width: 190px;
+    min-width: 0;
+    flex: 0 1 320px;
     margin-left: 0 !important;
 }
 
@@ -1529,12 +1532,72 @@ textarea.ant-input {
     }
 }
 
-/* A solid, readable substitute for users who request less transparency. */
+@media (prefers-reduced-motion: reduce) {
+    #sidebar .nav-main-link:hover,
+    #sidebar .nav-main-link:hover .nav-main-link-icon,
+    #sidebar .nav-main-link.active .nav-main-link-icon,
+    #page-header .btn:hover,
+    a.block:hover,
+    .ant-btn:active,
+    .btn:active {
+        transform: none;
+    }
+}
+
+/* Preserve explicit dark navigation while removing all glass layers. */
 @media (prefers-reduced-transparency: reduce) {
     #sidebar,
     #page-header > .content-header,
-    .v2board-auth-box .block.block-transparent {
+    #page-header .dropdown-menu,
+    .v2board-auth-box .block.block-transparent,
+    .ant-drawer-header,
+    .v2board-drawer-action,
+    .ant-modal-content,
+    .ant-dropdown-menu,
+    .ant-message-notice-content,
+    .ant-notification-notice {
         background: #fff !important;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+
+    #page-container.sidebar-dark #sidebar,
+    #page-container.page-header-dark #page-header > .content-header {
+        background: #263347 !important;
+    }
+
+    .ant-drawer-mask,
+    .ant-modal-mask,
+    .v2board-nav-mask {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    #sidebar,
+    #page-header > .content-header,
+    #page-header .dropdown-menu,
+    .v2board-auth-box .block.block-transparent,
+    .ant-drawer-header,
+    .v2board-drawer-action,
+    .ant-modal-content,
+    .ant-dropdown-menu,
+    .ant-message-notice-content,
+    .ant-notification-notice {
+        background: #fff !important;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+
+    #page-container.sidebar-dark #sidebar,
+    #page-container.page-header-dark #page-header > .content-header {
+        background: #263347 !important;
+    }
+
+    .ant-drawer-mask,
+    .ant-modal-mask,
+    .v2board-nav-mask {
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
     }
