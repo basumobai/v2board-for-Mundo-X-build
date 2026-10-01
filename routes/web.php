@@ -48,6 +48,11 @@ Route::get('/', function (Request $request) {
     }
 
     $renderParams['theme_config'] = $themeConfig;
+    $frontendCssPath = public_path('theme/' . $renderParams['theme'] . '/assets/custom.css');
+    $renderParams['frontend_ui_version'] = FrontendAssets::version(
+        [$frontendCssPath, public_path('theme/' . $renderParams['theme'] . '/assets/custom.js')],
+        (string) $renderParams['version']
+    );
     return view('theme::' . config('v2board.frontend_theme', 'default') . '.dashboard', $renderParams);
 });
 

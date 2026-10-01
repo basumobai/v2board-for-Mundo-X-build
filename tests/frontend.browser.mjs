@@ -82,8 +82,8 @@ const browser = await chromium.launch({ headless: true,
   args: ['--no-sandbox', '--disable-dev-shm-usage', '--no-zygote'],
 });
 try {
-  for (const width of [1440, 390]) {
-    const context = await browser.newContext({ viewport: { width, height: 900 }, isMobile: width === 390, hasTouch: width === 390, ...(width === 390 ? { userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36' } : {}) });
+  for (const width of (process.env.UI_KIND === 'user' ? [] : [1440, 390])) {
+    const context = await browser.newContext({ locale:'zh-CN', viewport: { width, height: 900 }, isMobile: width === 390, hasTouch: width === 390, ...(width === 390 ? { userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36' } : {}) });
     const page = await context.newPage();
     page.setDefaultTimeout(10000);
     const errors = []; page.on('pageerror', e => errors.push(e.message));
@@ -196,5 +196,78 @@ try {
     console.log(`Admin ${width}px rendered; page errors: ${JSON.stringify(errors)}; APIs: ${[...new Set(requests)].join(', ')}`);
     assert.deepEqual(errors, []);
     await context.close();
+  }  if (existsSync(join(root, 'public/theme/default/assets/custom.css'))) {
+    for (const width of [1440, 390]) {
+      const context = await browser.newContext({locale:'zh-CN',viewport:{width,height:900},isMobile:width===390,hasTouch:width===390,
+        ...(width===390 ? {userAgent:'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36'} : {})});
+      const page = await context.newPage(); page.setDefaultTimeout(10000);
+      const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+      await page.goto(`${origin}/#/login`);
+      await page.locator('.v2board-auth-box input[type=password]').waitFor();
+      await page.waitForTimeout(300);
+      await page.screenshot({path:join(output,`user-login-${width}.png`)});
+      assert.equal(await page.locator('.v2board-auth-box .block').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 255, 255)');
+      await page.locator('.v2board-auth-box input').first().fill('student@example.test');
+      await page.locator('.v2board-auth-box input[type=password]').fill('fixture-password');
+      await page.locator('.v2board-auth-box button[type=submit]').click();
+      await page.waitForFunction(()=>location.hash==='#/dashboard');
+      for (const route of ['dashboard','plan','order','profile']) {
+        await page.goto(`${origin}/#/${route}`);
+        await page.locator('#main-container').waitFor();
+        await page.waitForTimeout(700);
+        await page.screenshot({path:join(output,`user-${route}-${width}.png`)});
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`User ${route} overflows at ${width}`);
+        if(route==='profile') {
+          console.log('Profile actions:', await page.getByRole('button').allTextContents());
+          await page.getByRole('button',{name:/重\s*置|Reset/}).click();
+          await page.locator('.ant-modal-content').waitFor();
+          await page.waitForTimeout(300);
+          await page.screenshot({path:join(output,`user-reset-modal-${width}.png`)});
+          await page.locator('.ant-modal-content .ant-btn').first().click();
+        }
+      }
+      if(width===390) {
+        await page.locator('#page-header button').filter({has:page.locator('.fa-bars')}).click();
+        await page.waitForTimeout(500);
+        assert.ok((await page.locator('#sidebar').boundingBox()).x>=-1,'User mobile nav remains offscreen');
+        await page.screenshot({path:join(output,'user-nav-390.png')});
+        await page.locator('.v2board-nav-mask').click({position:{x:350,y:400}});
+        assert.ok(!/user-scalable\s*=\s*no|maximum-scale\s*=\s*1(?:[,;\s]|$)/i.test(await page.locator('meta[name=viewport]').getAttribute('content')));
+        const zoom=await context.newCDPSession(page);
+        await zoom.send('Emulation.setPageScaleFactor',{pageScaleFactor:1.5});
+        assert.ok(await page.evaluate(()=>visualViewport.scale>1),'User mobile zoom emulation is blocked');
+        await zoom.send('Emulation.setPageScaleFactor',{pageScaleFactor:1}); await zoom.detach();
+      }
+      for(const color of ['default','green','black','darkblue']) for(const header of ['light','dark']) for(const sidebar of ['light','dark']) {
+        const cdp=await context.newCDPSession(page);
+        await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-transparency',value:'reduce'},{name:'prefers-reduced-motion',value:'reduce'}]});
+        await page.goto(`${origin}/?color=${color}&header=${header}&sidebar=${sidebar}#/dashboard`);
+        await page.locator('#page-header').waitFor(); await page.waitForLoadState('networkidle');
+        const styles=await page.evaluate(()=>({header:getComputedStyle(document.querySelector('#page-header')).backgroundColor,
+          sidebar:getComputedStyle(document.querySelector('#sidebar')).backgroundColor,
+          backdrop:getComputedStyle(document.querySelector('#page-header')).backdropFilter,
+          color:getComputedStyle(document.body).getPropertyValue('--user-blue').trim(),
+          themeLast:document.querySelector('#mundo-user-overrides').compareDocumentPosition(document.querySelector('link[href*="/assets/theme/"]'))&Node.DOCUMENT_POSITION_PRECEDING,
+          motion:getComputedStyle(document.querySelector('.v2board-shortcuts-item')).transitionDuration,
+          content:getComputedStyle(document.querySelector('#main-container .block')).backgroundColor,
+          themes:Array.from(document.querySelectorAll('link[href*="/assets/theme/"]')).every(el=>new URL(el.href).searchParams.get('v')===window.settings.ui_version)}));
+        assert.equal(styles.header,header==='dark'?'rgb(38, 51, 71)':'rgb(255, 255, 255)');
+        assert.equal(styles.sidebar,sidebar==='dark'?'rgb(38, 51, 71)':'rgb(255, 255, 255)');
+        assert.equal(styles.backdrop,'none'); assert.equal(styles.content,'rgb(255, 255, 255)');
+        assert.ok(styles.motion.split(',').every(time=>parseFloat(time)<.001),'Reduced motion keeps long transition'); assert.ok(styles.themeLast && styles.themes,'User theme order/version is incorrect');
+        assert.equal(styles.color,{default:'#2865d9',green:'#247a77',black:'#3f4b5f',darkblue:'#3b5998'}[color]);
+        if(color==='green') await page.screenshot({path:join(output,`user-${header}-${sidebar}-reduced-${width}.png`)});
+        await cdp.send('Emulation.setEmulatedMedia',{features:[]}); await cdp.detach();
+      }
+      await page.goto(`${origin}/#/dashboard`); await page.locator('#page-header').waitFor();
+      await page.locator('#page-header button').filter({has:page.locator('.fa-sun, .fa-moon')}).click();
+      await page.waitForFunction(()=>Boolean(document.querySelector('style.darkreader')));
+      await page.waitForTimeout(300);
+      await page.screenshot({path:join(output,`user-night-mode-${width}.png`)});
+      await page.reload(); await page.waitForFunction(()=>Boolean(document.querySelector('style.darkreader')));
+      console.log(`User ${width}px rendered; errors: ${JSON.stringify(errors)}`); assert.deepEqual(errors,[]);
+      await context.close();
+    }
   }
+
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

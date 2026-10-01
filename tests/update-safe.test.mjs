@@ -19,7 +19,7 @@ function fixture() {
   mkdirSync(join(source, 'scripts'));
   copyFileSync('update.sh', join(source, 'update.sh'));
   copyFileSync('scripts/deploy-common.sh', join(source, 'scripts/deploy-common.sh'));
-  writeFileSync(join(source, '.gitignore'), '.env\nconfig/v2board.php\nconfig/theme/\nstorage/\npublic/custom/\n.install.lock\n');
+  writeFileSync(join(source, '.gitignore'), '.env\nconfig/v2board.php\nconfig/theme/\nstorage/\npublic/custom/\n/vendor/\n/node_modules/\n.install.lock\n');
   writeFileSync(join(source, 'release'), 'old');
   const gitEnv = { GIT_AUTHOR_NAME: 'Test', GIT_AUTHOR_EMAIL: 'test@example.test', GIT_COMMITTER_NAME: 'Test', GIT_COMMITTER_EMAIL: 'test@example.test' };
   run('git', ['add', '.'], source);
@@ -31,12 +31,16 @@ function fixture() {
   run('git', ['commit', '-am', 'new'], source, gitEnv);
   run('git', ['push'], source);
   const before = run('git', ['rev-parse', 'HEAD'], panel);
-  for (const path of ['config/theme', 'storage', 'public/custom']) mkdirSync(join(panel, path), { recursive: true });
+  for (const path of ['config/theme', 'storage', 'public/custom/vendor', 'public/custom/node_modules', 'vendor', 'node_modules']) mkdirSync(join(panel, path), { recursive: true });
   writeFileSync(join(panel, '.env'), 'APP_KEY=preserve-key\nCOMPOSE_PROJECT_NAME=preserve-project\n');
   writeFileSync(join(panel, 'config/v2board.php'), '<?php return ["name" => "preserve"];');
   writeFileSync(join(panel, 'config/theme/default.php'), '<?php return ["theme_header" => "dark"];');
   writeFileSync(join(panel, 'storage/user-file'), 'preserve-storage');
   writeFileSync(join(panel, 'public/custom/user.css'), 'preserve-custom-css');
+  writeFileSync(join(panel, 'public/custom/vendor/library.js'), 'preserve-theme-vendor');
+  writeFileSync(join(panel, 'public/custom/node_modules/asset.js'), 'preserve-theme-package');
+  writeFileSync(join(panel, 'vendor/reinstallable-cache'), 'exclude-root-vendor');
+  writeFileSync(join(panel, 'node_modules/reinstallable-cache'), 'exclude-root-packages');
   const bin = join(root, 'bin'); mkdirSync(bin);
   writeFileSync(join(bin, 'docker'), `#!/usr/bin/env bash
 set -euo pipefail
@@ -84,7 +88,8 @@ test('update preserves configuration and files and snapshots before migration', 
     assert.ok(!existsSync(join(backup, 'mysql-client.cnf')));
     run('sha256sum', ['-c', 'SHA256SUMS'], backup);
     const files = run('tar', ['-tzf', 'project.tar.gz'], backup);
-    for (const path of ['.env', 'config/v2board.php', 'config/theme/default.php', 'storage/user-file', 'public/custom/user.css']) assert.ok(files.includes(path));
+    for (const path of ['.env', 'config/v2board.php', 'config/theme/default.php', 'storage/user-file', 'public/custom/user.css', 'public/custom/vendor/library.js', 'public/custom/node_modules/asset.js']) assert.ok(files.includes(path));
+    assert.ok(!files.includes('./vendor/') && !files.includes('./node_modules/'));
     const log = readFileSync(f.env.MOCK_LOG, 'utf8');
     assert.ok(log.indexOf('stop horizon') < log.indexOf('--entrypoint mysqldump'));
     assert.ok(log.indexOf('stop redis') < log.indexOf('web tar'));
