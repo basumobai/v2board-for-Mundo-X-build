@@ -21,6 +21,7 @@
                 color: '{{$theme_color}}',
             },
             version: '{{$version}}',
+            ui_version: '{{$admin_ui_version}}',
             background_url: '{{$background_url}}',
             logo: '{{$logo}}',
             secure_path: '{{$secure_path}}'

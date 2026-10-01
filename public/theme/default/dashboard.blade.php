@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN" data-mundo-theme="{{$theme_config['theme_color']}}">
 
 <head>
     <link rel="stylesheet" href="/theme/{{$theme}}/assets/components.chunk.css?v={{$version}}">
     <link rel="stylesheet" href="/theme/{{$theme}}/assets/umi.css?v={{$version}}">
     @if (file_exists(public_path("/theme/{$theme}/assets/custom.css")))
-        <link rel="stylesheet" href="/theme/{{$theme}}/assets/custom.css?v={{$frontend_ui_version ?? $version}}">
+        <link id="mundo-user-overrides" rel="stylesheet" href="/theme/{{$theme}}/assets/custom.css?v={{$frontend_ui_version ?? $version}}">
     @endif
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     @php ($colors = [
         'darkblue' => '#3b5998',
         'black' => '#343a40',
@@ -30,6 +30,7 @@
                 color: '{{$theme_config['theme_color']}}',
             },
             version: '{{$version}}',
+            ui_version: '{{$frontend_ui_version}}',
             background_url: '{{$theme_config['background_url']}}',
             description: '{{$description}}',
             i18n: [
@@ -60,7 +61,7 @@
 <script src="/theme/{{$theme}}/assets/components.async.js?v={{$version}}"></script>
 <script src="/theme/{{$theme}}/assets/umi.js?v={{$version}}"></script>
 @if (file_exists(public_path("/theme/{$theme}/assets/custom.js")))
-    <script src="/theme/{{$theme}}/assets/custom.js?v={{$version}}"></script>
+    <script src="/theme/{{$theme}}/assets/custom.js?v={{$frontend_ui_version}}"></script>
 @endif
 </body>
 
