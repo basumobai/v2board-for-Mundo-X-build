@@ -2,6 +2,7 @@
 
 use App\Services\ThemeService;
 use App\Services\RuntimeConfigService;
+use App\Support\FrontendAssets;
 use Illuminate\Http\Request;
 
 /*
@@ -54,17 +55,15 @@ Route::get('/', function (Request $request) {
 Route::get('/' . config('v2board.secure_path', config('v2board.frontend_admin_path', hash('crc32b', config('app.key')))), function () {
     $customCssPath = public_path('assets/admin/custom.css');
     $customJavascriptPath = public_path('assets/admin/custom.js');
-    clearstatcache(true, $customCssPath);
-    clearstatcache(true, $customJavascriptPath);
-    $adminUiVersion = max(
-        is_file($customCssPath) ? filemtime($customCssPath) : 0,
-        is_file($customJavascriptPath) ? filemtime($customJavascriptPath) : 0
+    $adminUiVersion = FrontendAssets::version(
+        [$customCssPath, $customJavascriptPath],
+        (string) config('app.version')
     );
 
     return view('admin', [
         'title' => config('v2board.app_name', 'V2Board'),
         'theme_sidebar' => config('v2board.frontend_theme_sidebar', 'light'),
-        'theme_header' => config('v2board.frontend_theme_header', 'dark'),
+        'theme_header' => config('v2board.frontend_theme_header', 'light'),
         'theme_color' => config('v2board.frontend_theme_color', 'default'),
         'background_url' => config('v2board.frontend_background_url'),
         'version' => config('app.version'),
