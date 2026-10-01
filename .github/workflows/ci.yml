@@ -85,14 +85,16 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Install browser tooling
+        timeout-minutes: 5
         run: |
-          npm install --no-save playwright@1.62.1
+          npm install --no-save --fetch-retries=1 --fetch-timeout=60000 playwright@1.62.1
           npx playwright install --with-deps chromium
           sudo apt-get install -y fonts-noto-cjk
       - name: Render shipped frontend on desktop and mobile
