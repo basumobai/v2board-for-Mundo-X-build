@@ -218,7 +218,8 @@ try {
         await page.screenshot({path:join(output,`user-${route}-${width}.png`)});
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`User ${route} overflows at ${width}`);
         if(route==='profile') {
-          await page.getByRole('button',{name:/重置|Reset/}).click();
+          console.log('Profile actions:', await page.getByRole('button').allTextContents());
+          await page.getByRole('button',{name:/重\s*置|Reset/}).click();
           await page.locator('.ant-modal-content').waitFor();
           await page.waitForTimeout(300);
           await page.screenshot({path:join(output,`user-reset-modal-${width}.png`)});
