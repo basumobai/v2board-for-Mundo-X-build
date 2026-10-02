@@ -192,6 +192,18 @@
         }
     }
 
+    document.addEventListener('click', function (event) {
+        var skip = event.target.closest && event.target.closest('.mundo-skip-link');
+        if (!skip) return;
+        // Also intercept cached shells that still contain the old fragment link.
+        event.preventDefault();
+        var main = document.getElementById('main-container');
+        if (!main) return;
+        main.setAttribute('tabindex', '-1');
+        main.focus({ preventScroll: true });
+        main.scrollIntoView({ block: 'start' });
+    });
+
     document.addEventListener('keydown', function (event) {
         var control = event.target.closest && event.target.closest('a[role="button"]');
         if (!control || (event.key !== 'Enter' && event.key !== ' ')) {

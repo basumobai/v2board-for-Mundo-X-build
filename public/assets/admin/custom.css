@@ -135,6 +135,8 @@ a[href="javascript:void(0);"] {
 }
 
 .mundo-skip-link {
+    font: inherit;
+    cursor: pointer;
     position: fixed;
     top: 10px;
     left: 50%;
