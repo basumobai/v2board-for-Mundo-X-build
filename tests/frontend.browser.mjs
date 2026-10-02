@@ -23,7 +23,6 @@ let nodes = [{ id: 1, name: '香港测试节点', type: 'vmess', host: 'node.exa
   group_id: [1], tls: 1, network: 'ws', alter_id: 0, parent_id: null }];
 const requests = [];
 let delayNextNodeFetch = false;
-let failNextNodeFetch = false;
 let releaseNodeFetch;
 let delayedNodeFetchStarted;
 function html(kind, url) {
@@ -70,10 +69,6 @@ const server = createServer(async (req, res) => {
           releaseNodeFetch = resolve;
           delayedNodeFetchStarted();
         });
-      } else if (failNextNodeFetch) {
-        failNextNodeFetch = false;
-        res.destroy();
-        return;
       }
     }
     else if (url.pathname.endsWith('/group/fetch')) data = [{ id: 1, name: '测试组' }];
@@ -212,8 +207,9 @@ try {
         await staleResponse;
         await page.waitForLoadState('networkidle');
         assert.ok(await page.getByText(`新增测试节点-${width}`).first().isVisible(), 'An older list response replaced the saved node');
-        failNextNodeFetch = true;
+        await page.route('**/api/v1/admin/server/manage/getNodes?*',route=>route.abort('failed'),{times:1});
         await page.getByRole('button', {name:'刷新节点'}).click();
+        await page.getByText('节点列表刷新失败',{exact:true}).waitFor();
         await page.getByRole('button', {name:'刷新节点'}).waitFor({state:'visible'});
         await page.waitForFunction(() => !document.querySelector('button[aria-label="刷新节点"]')?.classList.contains('ant-btn-loading'));
         const recoveryResponse = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/getNodes'));
