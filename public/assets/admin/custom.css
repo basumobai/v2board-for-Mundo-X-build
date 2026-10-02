@@ -271,7 +271,7 @@ a[href="javascript:void(0);"] {
 }
 
 #sidebar .content-side.content-side-full {
-    height: calc(100% - 72px);
+    height: calc(100% - 100px);
     scrollbar-color: rgba(151, 172, 215, 0.28) transparent;
     scrollbar-width: thin;
 }
@@ -763,6 +763,7 @@ a.block.block-link-pop:hover {
 }
 
 .ant-table {
+    font-family: inherit !important;
     color: var(--mundo-ink-soft);
     font-variant-numeric: tabular-nums;
 }

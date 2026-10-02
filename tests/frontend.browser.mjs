@@ -25,6 +25,7 @@ const requests = [];
 let delayNextNodeFetch = false;
 let failNextNodeFetch = false;
 let releaseNodeFetch;
+let delayedNodeFetchStarted;
 function html(kind, url) {
   const user = kind === 'user';
   const color = url.searchParams.get('color') || 'default';
@@ -65,7 +66,10 @@ const server = createServer(async (req, res) => {
       if (delayNextNodeFetch) {
         delayNextNodeFetch = false;
         res.setHeader('X-Fixture-Stale', '1');
-        await new Promise(resolve => { releaseNodeFetch = resolve; });
+        await new Promise(resolve => {
+          releaseNodeFetch = resolve;
+          delayedNodeFetchStarted();
+        });
       } else if (failNextNodeFetch) {
         failNextNodeFetch = false;
         res.destroy();
@@ -168,6 +172,7 @@ try {
         await page.locator('.ant-modal-content .ant-btn').first().click();
       }
       if (route === 'server/manage') {
+        try {
         const addNode = page.getByRole('button', {name:'新增节点'});
         const nodeDrawer = page.locator('.ant-drawer-open');
         await addNode.click();
@@ -177,15 +182,32 @@ try {
         await nodeDrawer.locator('.ant-drawer-close').click();
         await page.locator('.ant-drawer-open').waitFor({state:'hidden'});
         delayNextNodeFetch = true;
-        const staleResponse = page.waitForResponse(response => response.headers()['x-fixture-stale'] === '1');
+        const delayedRequest = new Promise(resolve => { delayedNodeFetchStarted = resolve; });
         await page.getByRole('button', {name:'刷新节点'}).click();
+        await delayedRequest;
+        console.log(`Node ${width}: delayed refresh started`);
         await addNode.click();
         await page.locator('.ant-dropdown-menu:visible').getByText('V2node', {exact:true}).click();
         await nodeDrawer.locator('.ant-drawer-content').waitFor();
         assert.equal(await nodeDrawer.getByPlaceholder('请输入节点名称').inputValue(), '', 'A new node inherited a cancelled draft');
         await nodeDrawer.getByPlaceholder('请输入节点名称').fill(`新增测试节点-${width}`);
-        await nodeDrawer.getByRole('button', {name:/提\s*交/}).click();
+        await nodeDrawer.getByPlaceholder('地址或IP', {exact:true}).fill('new-node.example.test');
+        await nodeDrawer.getByPlaceholder('用户连接端口').fill('443');
+        await nodeDrawer.getByPlaceholder('服务端开放端口').fill('443');
+        await nodeDrawer.locator('.form-group').filter({has:page.locator('label').getByText('节点协议',{exact:true})}).locator('.ant-select-selection').click();
+        await page.locator('.ant-select-dropdown:visible').getByText('VMess',{exact:true}).click();
+        await nodeDrawer.locator('.form-group').filter({has:page.locator('label').filter({hasText:'权限组'})}).first().locator('.ant-select-selection').click();
+        await page.locator('.ant-select-dropdown:visible').getByText('测试组',{exact:true}).click();
+        await nodeDrawer.getByPlaceholder('请输入节点名称').click();
+        await page.screenshot({path:join(output,`admin-node-create-${width}.png`)});
+        const [saved] = await Promise.all([
+          page.waitForResponse(response => response.url().endsWith('/server/v2node/save')),
+          nodeDrawer.getByRole('button', {name:/提\s*交/}).click(),
+        ]);
+        assert.equal(saved.status(),200,`Node save failed: ${await saved.text()}`);
+        console.log(`Node ${width}: saved`);
         await page.getByText(`新增测试节点-${width}`).first().waitFor();
+        const staleResponse = page.waitForResponse(response => response.headers()['x-fixture-stale'] === '1');
         releaseNodeFetch();
         await staleResponse;
         await page.waitForLoadState('networkidle');
@@ -207,7 +229,14 @@ try {
         await page.waitForTimeout(400);
         await page.screenshot({ path: join(output, `admin-node-drawer-${width}.png`) });
         await page.locator('.v2board-drawer-action .ant-btn').first().click();
-
+        console.log(`Node ${width}: create, stale response and transport recovery passed`);
+        } catch (error) {
+          console.log(`Node ${width} failed; requests: ${JSON.stringify(requests)}; errors: ${JSON.stringify(errors)}`);
+          console.log('Node failure state:',await page.locator('body').innerText());
+          await page.screenshot({path:join(output,`admin-node-failure-${width}.png`)});
+          releaseNodeFetch?.();
+          throw error;
+        }
       }
     }
     if (width === 390) {

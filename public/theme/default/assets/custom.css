@@ -49,8 +49,22 @@ body.mundo-user-shell {
     color: var(--user-ink) !important;
 }
 
+.mundo-user-shell #sidebar .content-side.content-side-full {
+    height: calc(100% - 3.25rem - 28px);
+}
+
+.mundo-user-shell #sidebar .v2board-copyright {
+    color: var(--user-muted);
+    font-size: 11px;
+    opacity: 1;
+}
+
 .mundo-user-shell #page-container.sidebar-dark #sidebar .link-fx .text-white-75 {
     color: #fff !important;
+}
+
+.mundo-user-shell #page-container.sidebar-dark #sidebar .v2board-copyright {
+    color: #a9b7cc;
 }
 
 .mundo-user-shell #sidebar .nav-main-link,
@@ -205,6 +219,11 @@ body.mundo-user-shell {
     color: var(--user-muted);
     background: #f8faff;
     border-color: var(--user-line);
+}
+
+.mundo-user-shell .ant-table {
+    font-family: inherit !important;
+    font-variant-numeric: tabular-nums;
 }
 
 .mundo-user-shell .table td,
