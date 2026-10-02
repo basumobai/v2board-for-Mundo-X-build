@@ -89,5 +89,6 @@ finish_deployment() {
     docker compose run --rm -T --no-deps installer php artisan view:cache
     docker compose up -d --wait --wait-timeout 180
     docker compose run --rm -T --no-deps installer php docker/healthcheck.php gateway
+    docker compose run --rm -T --no-deps installer php docker/admin-asset-smoke.php
     docker compose ps
 }
