@@ -58,11 +58,22 @@ Route::get('/', function (Request $request) {
 
 //TODO:: 兼容
 Route::get('/' . config('v2board.secure_path', config('v2board.frontend_admin_path', hash('crc32b', config('app.key')))), function () {
+    $fallbackVersion = (string) config('app.version');
     $customCssPath = public_path('assets/admin/custom.css');
     $customJavascriptPath = public_path('assets/admin/custom.js');
+    $umiJavascriptPath = public_path('assets/admin/umi.js');
+
+    // Keep the small override layer and the multi-megabyte application bundle on
+    // independent cache keys. PR #10 coupled them, so any CSS/JS override edit
+    // forced browsers to cold-download the whole Umi bundle again before React
+    // could mount, which leaves only the server-rendered shell on slow/cold loads.
     $adminUiVersion = FrontendAssets::version(
-        [$customCssPath, $customJavascriptPath, public_path('assets/admin/umi.js')],
-        (string) config('app.version')
+        [$customCssPath, $customJavascriptPath],
+        $fallbackVersion
+    );
+    $adminBundleVersion = FrontendAssets::version(
+        [$umiJavascriptPath],
+        $fallbackVersion
     );
 
     return view('admin', [
@@ -72,7 +83,8 @@ Route::get('/' . config('v2board.secure_path', config('v2board.frontend_admin_pa
         'theme_color' => config('v2board.frontend_theme_color', 'default'),
         'background_url' => config('v2board.frontend_background_url'),
         'version' => config('app.version'),
-        'admin_ui_version' => $adminUiVersion ?: config('app.version'),
+        'admin_ui_version' => $adminUiVersion ?: $fallbackVersion,
+        'admin_bundle_version' => $adminBundleVersion ?: $fallbackVersion,
         'logo' => config('v2board.logo'),
         'secure_path' => config('v2board.secure_path', config('v2board.frontend_admin_path', hash('crc32b', config('app.key'))))
     ]);

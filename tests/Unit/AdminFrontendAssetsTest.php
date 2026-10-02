@@ -20,11 +20,17 @@ class AdminFrontendAssetsTest extends TestCase
         $this->assertStringContainsString('id="mundo-admin-overrides"', $view);
         $this->assertStringContainsString('/assets/admin/custom.css?v={{$admin_ui_version}}', $view);
         $this->assertStringContainsString('/assets/admin/custom.js?v={{$admin_ui_version}}', $view);
-        $this->assertStringContainsString('/assets/admin/umi.js?v={{$admin_ui_version}}', $view);
+        $this->assertStringContainsString('/assets/admin/umi.js?v={{$admin_bundle_version}}', $view);
+        $this->assertStringNotContainsString('/assets/admin/umi.js?v={{$admin_ui_version}}', $view);
+        $this->assertStringContainsString('bundle_version: \'{{$admin_bundle_version}}\'', $view);
 
         $routes = file_get_contents($this->projectPath('routes/web.php'));
         $this->assertStringContainsString('FrontendAssets::version(', $routes);
         $this->assertStringContainsString("'admin_ui_version' =>", $routes);
+        $this->assertStringContainsString("'admin_bundle_version' =>", $routes);
+        $this->assertStringContainsString('[$customCssPath, $customJavascriptPath]', $routes);
+        $this->assertStringContainsString('[$umiJavascriptPath]', $routes);
+        $this->assertStringNotContainsString('[$customCssPath, $customJavascriptPath, public_path(\'assets/admin/umi.js\')]', $routes);
     }
 
     public function testAdminEnhancementAssetsContainAccessibilityFallbacks(): void
