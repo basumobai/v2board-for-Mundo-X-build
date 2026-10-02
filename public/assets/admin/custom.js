@@ -192,6 +192,14 @@
         }
     }
 
+    function recoverLegacySkipRoute() {
+        if (window.location.hash === '#main-container') {
+            window.location.replace(window.location.pathname + window.location.search + '#/dashboard');
+        }
+    }
+    window.addEventListener('hashchange', recoverLegacySkipRoute);
+    recoverLegacySkipRoute();
+
     document.addEventListener('click', function (event) {
         var skip = event.target.closest && event.target.closest('.mundo-skip-link');
         if (!skip) return;

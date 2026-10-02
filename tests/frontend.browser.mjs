@@ -151,6 +151,11 @@ try {
     await page.goto(`${origin}/admin#main-container`);
     await page.waitForFunction(()=>location.hash==='#/dashboard');
     await page.locator('#page-container').waitFor();
+    // Also verify startup recovery on a fresh document with an existing session.
+    await page.goto('about:blank');
+    await page.goto(`${origin}/admin#main-container`);
+    await page.waitForFunction(()=>location.hash==='#/dashboard');
+    await page.locator('#page-container').waitFor();
     await page.screenshot({path:join(output,`admin-legacy-skip-recovered-${width}.png`)});
     for (const route of ['dashboard', 'user', 'server/manage']) {
       await page.goto(`${origin}/admin#/${route}`);
