@@ -45,8 +45,13 @@ body.mundo-user-shell {
     background: transparent !important;
 }
 
-.mundo-user-shell #sidebar .link-fx .text-white-75 {
+.mundo-user-shell #sidebar .content-header a,
+.mundo-user-shell #sidebar .content-header .text-white-75 {
     color: var(--user-ink) !important;
+}
+
+.mundo-user-shell #sidebar .content-header > a.font-size-lg {
+    font-weight: 650;
 }
 
 .mundo-user-shell #sidebar .content-side.content-side-full {
@@ -59,7 +64,8 @@ body.mundo-user-shell {
     opacity: 1;
 }
 
-.mundo-user-shell #page-container.sidebar-dark #sidebar .link-fx .text-white-75 {
+.mundo-user-shell #page-container.sidebar-dark #sidebar .content-header a,
+.mundo-user-shell #page-container.sidebar-dark #sidebar .content-header .text-white-75 {
     color: #fff !important;
 }
 

@@ -346,6 +346,7 @@ try {
         await page.locator('#page-header').waitFor(); await page.waitForLoadState('networkidle');
         const styles=await page.evaluate(()=>({header:getComputedStyle(document.querySelector('#page-header')).backgroundColor,
           sidebar:getComputedStyle(document.querySelector('#sidebar')).backgroundColor,
+          brand:getComputedStyle(document.querySelector('#sidebar .content-header .text-white-75')).color,
           backdrop:getComputedStyle(document.querySelector('#page-header')).backdropFilter,
           color:getComputedStyle(document.body).getPropertyValue('--user-blue').trim(),
           themeLast:document.querySelector('#mundo-user-overrides').compareDocumentPosition(document.querySelector('link[href*="/assets/theme/"]'))&Node.DOCUMENT_POSITION_PRECEDING,
@@ -354,6 +355,7 @@ try {
           themes:Array.from(document.querySelectorAll('link[href*="/assets/theme/"]')).every(el=>new URL(el.href).searchParams.get('v')===window.settings.ui_version)}));
         assert.equal(styles.header,header==='dark'?'rgb(38, 51, 71)':'rgb(255, 255, 255)');
         assert.equal(styles.sidebar,sidebar==='dark'?'rgb(38, 51, 71)':'rgb(255, 255, 255)');
+        assert.equal(styles.brand,sidebar==='dark'?'rgb(255, 255, 255)':'rgb(29, 41, 61)','User sidebar brand must contrast with its background');
         assert.equal(styles.backdrop,'none'); assert.equal(styles.content,'rgb(255, 255, 255)');
         assert.ok(styles.motion.split(',').every(time=>parseFloat(time)<.001),'Reduced motion keeps long transition'); assert.ok(styles.themeLast && styles.themes,'User theme order/version is incorrect');
         assert.equal(styles.color,{default:'#2865d9',green:'#247a77',black:'#3f4b5f',darkblue:'#3b5998'}[color]);
