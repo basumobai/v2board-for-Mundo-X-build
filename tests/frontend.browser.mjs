@@ -63,8 +63,7 @@ const server = createServer(async (req, res) => {
         await new Promise(resolve => { releaseNodeFetch = resolve; });
       } else if (failNextNodeFetch) {
         failNextNodeFetch = false;
-        res.statusCode = 500;
-        res.end(JSON.stringify({code: 500, message: 'Fixture refresh failure'}));
+        res.destroy();
         return;
       }
     }
@@ -188,6 +187,9 @@ try {
         await page.getByRole('button', {name:'刷新节点'}).click();
         await page.getByRole('button', {name:'刷新节点'}).waitFor({state:'visible'});
         await page.waitForFunction(() => !document.querySelector('button[aria-label="刷新节点"]')?.classList.contains('ant-btn-loading'));
+        const recoveryResponse = page.waitForResponse(response => response.url().endsWith('/getNodes'));
+        await page.getByRole('button', {name:'刷新节点'}).click();
+        await recoveryResponse;
         await addNode.click();
         await page.locator('.ant-dropdown-menu:visible').waitFor();
         await addNode.click();

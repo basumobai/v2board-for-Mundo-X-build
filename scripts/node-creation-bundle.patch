@@ -1,49 +1,15 @@
 diff --git a/public/assets/admin/umi.js b/public/assets/admin/umi.js
-index fe57fcd3..90fbd34a 100644
+index 90fbd34a..39355347 100644
 --- a/public/assets/admin/umi.js
 +++ b/public/assets/admin/umi.js
-@@ -106807,6 +106807,7 @@
-                 super(e),
-                 this.state = {
-                     searchKey: void 0,
-+                    createSequence: 0,
-                     sortMode: !0,
-                     pageSize: Object(L["e"])("server_manage_page_size") || 10
-                 }
-@@ -107120,24 +107121,27 @@
-                     }
-                 }, y.a.createElement(d["a"], {
-                     trigger: ["click"],
-+                    onVisibleChange: visible=>{
-+                        if (visible) this.setState(state=>({ createSequence: state.createSequence + 1 }))
-+                    },
-                     overlay: y.a.createElement(p["a"], null, y.a.createElement(p["a"].Item, null, y.a.createElement(mV2node, {
--                        key: "create-v2node"
-+                        key: "create-v2node-" + this.state.createSequence
-                     }, y.a.createElement("a", null, this.getTypeTag("v2node", "V2node")))), y.a.createElement(p["a"].Item, null, y.a.createElement(w["a"], {
--                        key: "create-shadowsocks"
-+                        key: "create-shadowsocks-" + this.state.createSequence
-                     }, y.a.createElement("a", null, this.getTypeTag("shadowsocks", "Shadowsocks")))), y.a.createElement(p["a"].Item, null, y.a.createElement(k["a"], {
--                        key: "create-vmess"
-+                        key: "create-vmess-" + this.state.createSequence
-                     }, y.a.createElement("a", null, this.getTypeTag("vmess", "VMess")))), y.a.createElement(p["a"].Item, null, y.a.createElement(C["a"], {
--                        key: "create-trojan"
-+                        key: "create-trojan-" + this.state.createSequence
-                     }, y.a.createElement("a", null, this.getTypeTag("trojan", "Trojan")))), y.a.createElement(p["a"].Item, null, y.a.createElement(W, {
--                        key: "create-hysteria"
-+                        key: "create-hysteria-" + this.state.createSequence
-                     }, y.a.createElement("a", null, this.getTypeTag("hysteria", "Hysteria")))), y.a.createElement(p["a"].Item, null, y.a.createElement(mTuic, {
--                        key: "create-tuic"
-+                        key: "create-tuic-" + this.state.createSequence
-                     }, y.a.createElement("a", null, this.getTypeTag("tuic", "Tuic")))), y.a.createElement(p["a"].Item, null, y.a.createElement(G, {
--                        key: "create-vless"
-+                        key: "create-vless-" + this.state.createSequence
-                     }, y.a.createElement("a", null, this.getTypeTag("vless", "VLess")))), y.a.createElement(p["a"].Item, null, y.a.createElement(mAnyTLS, {
--                        key: "create-anytls"
-+                        key: "create-anytls-" + this.state.createSequence
-                     }, y.a.createElement("a", null, this.getTypeTag("anytls", "AnyTLS")))), y.a.createElement(p["a"].Item, null, y.a.createElement(mV2node, {
--                        key: "create-mx",
-+                        key: "create-mx-" + this.state.createSequence,
-                         record: {
-                             protocol: "mx",
-                             tls: 1,
+@@ -5417,6 +5417,10 @@
+                             if (requestId === latestNodesRequest && result && 200 === result.code && Array.isArray(result.data)) {
+                                 yield put({ type: "setState", payload: { servers: result.data, sortMode: !1 } });
+                             }
++                        } catch (error) {
++                            if (requestId === latestNodesRequest) {
++                                n("TeRw")["a"].error({ message: "节点列表刷新失败", description: "请检查网络后重试", duration: 3 });
++                            }
+                         } finally {
+                             if (requestId === latestNodesRequest) {
+                                 yield put({ type: "setState", payload: { fetchLoading: !1 } });

@@ -14,7 +14,7 @@ jobs:
         run: |
           git apply --check scripts/node-creation-bundle.patch
           git apply scripts/node-creation-bundle.patch
-          test "$(git hash-object public/assets/admin/umi.js)" = "90fbd34a3f0009f4743e6629e747418a28b2c20e"
+          test "$(git hash-object public/assets/admin/umi.js)" = "393553477ae22ec96397a32052977c41596b0479"
           node --check public/assets/admin/umi.js
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
