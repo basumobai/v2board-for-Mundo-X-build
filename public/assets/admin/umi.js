@@ -5396,7 +5396,7 @@
             servers: [],
             fetchLoading: !1,
             sortMode: !1
-        };
+        }, latestNodesRequest = 0;
         t["default"] = {
             name: "serverManage",
             state: i()({}, s),
@@ -5408,53 +5408,25 @@
             },
             effects: {
                 getNodes(e, t) {
-                    var n = t.put;
-                    return a().mark(function e() {
-                        var t;
-                        return a().wrap(function(e) {
-                            while (1)
-                                switch (e.prev = e.next) {
-                                case 0:
-                                    return e.next = 2,
-                                    n({
-                                        type: "setState",
-                                        payload: {
-                                            fetchLoading: !0
-                                        }
-                                    });
-                                case 2:
-                                    return e.next = 4,
-                                    Object(o["a"])("/" + window.settings.secure_path + "/server/manage/getNodes");
-                                case 4:
-                                    return t = e.sent,
-                                    e.next = 7,
-                                    n({
-                                        type: "setState",
-                                        payload: {
-                                            fetchLoading: !1
-                                        }
-                                    });
-                                case 7:
-                                    if (200 === t.code) {
-                                        e.next = 9;
-                                        break
-                                    }
-                                    return e.abrupt("return");
-                                case 9:
-                                    return e.next = 11,
-                                    n({
-                                        type: "setState",
-                                        payload: {
-                                            servers: t.data,
-                                            sortMode: !1
-                                        }
-                                    });
-                                case 11:
-                                case "end":
-                                    return e.stop()
-                                }
-                        }, e)
-                    })()
+                    var put = t.put;
+                    return function* () {
+                        var requestId = ++latestNodesRequest;
+                        yield put({ type: "setState", payload: { fetchLoading: !0 } });
+                        try {
+                            var result = yield Object(o["a"])("/" + window.settings.secure_path + "/server/manage/getNodes", { _mundo_refresh: Date.now() + "-" + requestId });
+                            if (requestId === latestNodesRequest && result && 200 === result.code && Array.isArray(result.data)) {
+                                yield put({ type: "setState", payload: { servers: result.data, sortMode: !1 } });
+                            }
+                        } catch (error) {
+                            if (requestId === latestNodesRequest) {
+                                n("TeRw")["a"].error({ message: "节点列表刷新失败", description: "请检查网络后重试", duration: 3 });
+                            }
+                        } finally {
+                            if (requestId === latestNodesRequest) {
+                                yield put({ type: "setState", payload: { fetchLoading: !1 } });
+                            }
+                        }
+                    }()
                 },
                 sort(e, t) {
                     var n = e.fromIndex
@@ -106839,6 +106811,7 @@
                 super(e),
                 this.state = {
                     searchKey: void 0,
+                    createSequence: 0,
                     sortMode: !0,
                     pageSize: Object(L["e"])("server_manage_page_size") || 10
                 }
@@ -107141,9 +107114,7 @@
                     message: e=>{
                         return window.confirm("\u8282\u70b9\u6392\u5e8f\u8fd8\u6ca1\u6709\u4fdd\u5b58\uff0c\u662f\u5426\u79bb\u5f00")
                     }
-                }), y.a.createElement(M["a"], {
-                    loading: O
-                }, y.a.createElement("div", {
+                }), y.a.createElement(y.a.Fragment, null, y.a.createElement("div", {
                     className: "block block-bottom ".concat(T.a.manage)
                 }, y.a.createElement("div", {
                     className: "bg-white"
@@ -107153,24 +107124,28 @@
                         padding: 15
                     }
                 }, y.a.createElement(d["a"], {
+                    trigger: ["click"],
+                    onVisibleChange: visible=>{
+                        if (visible) this.setState(state=>({ createSequence: state.createSequence + 1 }))
+                    },
                     overlay: y.a.createElement(p["a"], null, y.a.createElement(p["a"].Item, null, y.a.createElement(mV2node, {
-                        key: Math.random()
+                        key: "create-v2node-" + this.state.createSequence
                     }, y.a.createElement("a", null, this.getTypeTag("v2node", "V2node")))), y.a.createElement(p["a"].Item, null, y.a.createElement(w["a"], {
-                        key: Math.random()
+                        key: "create-shadowsocks-" + this.state.createSequence
                     }, y.a.createElement("a", null, this.getTypeTag("shadowsocks", "Shadowsocks")))), y.a.createElement(p["a"].Item, null, y.a.createElement(k["a"], {
-                        key: Math.random()
+                        key: "create-vmess-" + this.state.createSequence
                     }, y.a.createElement("a", null, this.getTypeTag("vmess", "VMess")))), y.a.createElement(p["a"].Item, null, y.a.createElement(C["a"], {
-                        key: Math.random()
+                        key: "create-trojan-" + this.state.createSequence
                     }, y.a.createElement("a", null, this.getTypeTag("trojan", "Trojan")))), y.a.createElement(p["a"].Item, null, y.a.createElement(W, {
-                        key: Math.random()
+                        key: "create-hysteria-" + this.state.createSequence
                     }, y.a.createElement("a", null, this.getTypeTag("hysteria", "Hysteria")))), y.a.createElement(p["a"].Item, null, y.a.createElement(mTuic, {
-                        key: Math.random()
+                        key: "create-tuic-" + this.state.createSequence
                     }, y.a.createElement("a", null, this.getTypeTag("tuic", "Tuic")))), y.a.createElement(p["a"].Item, null, y.a.createElement(G, {
-                        key: Math.random()
+                        key: "create-vless-" + this.state.createSequence
                     }, y.a.createElement("a", null, this.getTypeTag("vless", "VLess")))), y.a.createElement(p["a"].Item, null, y.a.createElement(mAnyTLS, {
-                        key: Math.random()
+                        key: "create-anytls-" + this.state.createSequence
                     }, y.a.createElement("a", null, this.getTypeTag("anytls", "AnyTLS")))), y.a.createElement(p["a"].Item, null, y.a.createElement(mV2node, {
-                        key: Math.random(),
+                        key: "create-mx-" + this.state.createSequence,
                         record: {
                             protocol: "mx",
                             tls: 1,
@@ -107182,9 +107157,18 @@
                         },
                         mxOnly: !0
                     }, y.a.createElement("a", null, this.getTypeTag("mx", "Mundo X")))))
-                }, y.a.createElement(l["a"], null, y.a.createElement(m["a"], {
+                }, y.a.createElement(l["a"], {
+                    title: "新增节点",
+                    "aria-label": "新增节点",
+                    type: "primary"
+                }, y.a.createElement(m["a"], {
                     type: "plus"
-                }))), y.a.createElement(s["a"], {
+                }))), y.a.createElement(l["a"], {
+                    title: "刷新节点",
+                    "aria-label": "刷新节点",
+                    loading: O,
+                    onClick: ()=>this.props.dispatch({ type: "serverManage/getNodes" })
+                }, y.a.createElement(m["a"], { type: "reload" })), y.a.createElement(s["a"], {
                     placeholder: "\u8f93\u5165\u4efb\u610f\u5173\u952e\u5b57\u641c\u7d22",
                     style: {
                         width: 200

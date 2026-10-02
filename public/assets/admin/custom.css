@@ -256,6 +256,14 @@ a[href="javascript:void(0);"] {
     white-space: nowrap;
 }
 
+#sidebar .link-fx.font-size-lg .text-white-75 {
+    color: var(--mundo-ink) !important;
+}
+
+#page-container.sidebar-dark #sidebar .link-fx.font-size-lg .text-white-75 {
+    color: #fff !important;
+}
+
 #sidebar .content-side {
     position: relative;
     z-index: 1;
@@ -263,7 +271,7 @@ a[href="javascript:void(0);"] {
 }
 
 #sidebar .content-side.content-side-full {
-    height: calc(100% - 72px);
+    height: calc(100% - 100px);
     scrollbar-color: rgba(151, 172, 215, 0.28) transparent;
     scrollbar-width: thin;
 }
@@ -658,6 +666,90 @@ a.block.block-link-pop:hover {
     scrollbar-width: thin;
 }
 
+/* Keep the dashboard useful at tablet desktop widths instead of expanding four
+   shortcuts into two rows of oversized, nested cards. */
+.js-classic-nav {
+    margin-bottom: 14px !important;
+}
+
+.js-classic-nav .row.no-gutters.border {
+    margin: -5px;
+    border: 0 !important;
+}
+
+.js-classic-nav .row > [class*="col-"] {
+    padding: 5px;
+}
+
+.js-classic-nav a.block {
+    height: 100%;
+    margin: 0;
+    text-align: left !important;
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+.js-classic-nav a.block > .block-content {
+    display: flex;
+    min-height: 70px;
+    align-items: center;
+    gap: 11px;
+    padding: 12px !important;
+    text-align: left !important;
+}
+
+.js-classic-nav a.block i {
+    display: inline-grid !important;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    margin: 0 !important;
+    place-items: center;
+    color: var(--mundo-primary) !important;
+    background: var(--mundo-primary-soft);
+    border-radius: 10px;
+    font-size: 19px !important;
+}
+
+.js-classic-nav a.block .font-w600 {
+    color: var(--mundo-ink);
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.v2board-stats-bar .block-content {
+    padding: 16px 18px !important;
+}
+
+.v2board-stats-bar .display-4 {
+    margin-bottom: 0 !important;
+    font-size: clamp(26px, 3vw, 39px);
+    line-height: 1.2;
+}
+
+.v2board-stats-bar .d-flex.align-items-center {
+    flex-wrap: wrap;
+    gap: 14px 0;
+}
+
+.v2board-stats-bar .d-flex.align-items-center > div {
+    flex: 1 1 155px;
+    min-width: 0;
+    padding: 0 14px !important;
+}
+
+.v2board-stats-bar .d-flex.align-items-center > div:first-child {
+    padding-left: 0 !important;
+}
+
+.v2board-stats-bar .d-flex.align-items-center > div + div {
+    border-left: 1px solid var(--mundo-border);
+}
+
+.v2board-stats-bar .fa-2x {
+    font-size: 18px;
+}
+
 /* Data tables: calm density, strong scanning cues, stable number columns. */
 
 .ant-table-wrapper,
@@ -671,6 +763,7 @@ a.block.block-link-pop:hover {
 }
 
 .ant-table {
+    font-family: inherit !important;
     color: var(--mundo-ink-soft);
     font-variant-numeric: tabular-nums;
 }
@@ -1356,6 +1449,39 @@ textarea.ant-input {
 
     #main-container > .p-0.p-lg-4 {
         padding: 20px 22px 28px !important;
+    }
+}
+
+@media (min-width: 992px) and (max-width: 1279.98px) {
+    #sidebar {
+        width: 216px;
+    }
+
+    #page-container.sidebar-o,
+    #page-container.page-header-fixed.sidebar-o #page-header,
+    #page-container.page-header-glass.sidebar-o #page-header {
+        padding-left: 236px;
+    }
+
+    #page-container.page-header-fixed.sidebar-o #page-header .overlay-header,
+    #page-container.page-header-glass.sidebar-o #page-header .overlay-header {
+        left: 236px;
+    }
+
+    #page-container.side-scroll #sidebar .content-header,
+    #page-container.side-scroll #sidebar .content-side {
+        width: 216px !important;
+    }
+
+    #main-container > .p-0.p-lg-4 {
+        padding: 14px 16px 22px !important;
+    }
+}
+
+@media (min-width: 992px) and (max-width: 1439.98px) {
+    .js-classic-nav .col-sm-6.col-xl-3 {
+        flex: 0 0 25%;
+        max-width: 25%;
     }
 }
 

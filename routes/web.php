@@ -61,7 +61,7 @@ Route::get('/' . config('v2board.secure_path', config('v2board.frontend_admin_pa
     $customCssPath = public_path('assets/admin/custom.css');
     $customJavascriptPath = public_path('assets/admin/custom.js');
     $adminUiVersion = FrontendAssets::version(
-        [$customCssPath, $customJavascriptPath],
+        [$customCssPath, $customJavascriptPath, public_path('assets/admin/umi.js')],
         (string) config('app.version')
     );
 
