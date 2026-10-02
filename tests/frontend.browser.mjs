@@ -24,6 +24,7 @@ let nodes = [{ id: 1, name: '香港测试节点', type: 'vmess', host: 'node.exa
 const requests = [];
 let delayNextNodeFetch = false;
 let failNextNodeFetch = false;
+let releaseNodeFetch;
 function html(kind, url) {
   const user = kind === 'user';
   const color = url.searchParams.get('color') || 'default';
@@ -58,7 +59,8 @@ const server = createServer(async (req, res) => {
       data = nodes.map(node => ({...node}));
       if (delayNextNodeFetch) {
         delayNextNodeFetch = false;
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        res.setHeader('X-Fixture-Stale', '1');
+        await new Promise(resolve => { releaseNodeFetch = resolve; });
       } else if (failNextNodeFetch) {
         failNextNodeFetch = false;
         res.statusCode = 500;
@@ -120,6 +122,14 @@ try {
       await page.waitForTimeout(700);
       await page.screenshot({ path: join(output, `admin-${route.replace('/', '-')}-${width}.png`) });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Page overflows at ${width}: ${route}`);
+      if (route === 'dashboard' && width === 1440) {
+        await page.setViewportSize({width:1152, height:650});
+        const shortcuts = await page.locator('.js-classic-nav a.block').evaluateAll(cards => cards.map(card => ({top:card.getBoundingClientRect().top, height:card.getBoundingClientRect().height})));
+        assert.equal(new Set(shortcuts.map(card => Math.round(card.top))).size, 1, 'Tablet shortcuts expand into multiple oversized rows');
+        assert.ok(shortcuts.every(card => card.height < 110), 'Tablet shortcuts dominate the dashboard');
+        await page.screenshot({path:join(output,'admin-dashboard-tablet-1152.png')});
+        await page.setViewportSize({width, height:900});
+      }
       if (route === 'user') {
         assert.equal(await page.locator('.ant-table-fixed-right tbody td').first().evaluate(el=>getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)', 'Fixed cells must be opaque');
         await page.locator('.ant-table-body').first().evaluate(el=>{el.scrollLeft=300;});
@@ -157,17 +167,22 @@ try {
         await addNode.click();
         await page.locator('.ant-dropdown-menu:visible').getByText('V2node', {exact:true}).click();
         await page.locator('.ant-drawer-content').waitFor();
+        await page.getByPlaceholder('请输入节点名称').last().fill('取消的草稿');
         await page.locator('.ant-drawer-close').last().click();
         await page.locator('.ant-drawer-content').waitFor({state:'hidden'});
         delayNextNodeFetch = true;
+        const staleResponse = page.waitForResponse(response => response.headers()['x-fixture-stale'] === '1');
         await page.getByRole('button', {name:'刷新节点'}).click();
         await addNode.click();
         await page.locator('.ant-dropdown-menu:visible').getByText('V2node', {exact:true}).click();
         await page.locator('.ant-drawer-content').waitFor();
+        assert.equal(await page.getByPlaceholder('请输入节点名称').last().inputValue(), '', 'A new node inherited a cancelled draft');
         await page.getByPlaceholder('请输入节点名称').last().fill(`新增测试节点-${width}`);
         await page.locator('.ant-drawer-content').getByRole('button', {name:'提交'}).last().click();
         await page.getByText(`新增测试节点-${width}`).first().waitFor();
-        await page.waitForTimeout(800);
+        releaseNodeFetch();
+        await staleResponse;
+        await page.waitForLoadState('networkidle');
         assert.ok(await page.getByText(`新增测试节点-${width}`).first().isVisible(), 'An older list response replaced the saved node');
         failNextNodeFetch = true;
         await page.getByRole('button', {name:'刷新节点'}).click();
@@ -260,6 +275,15 @@ try {
         await page.waitForTimeout(700);
         await page.screenshot({path:join(output,`user-${route}-${width}.png`)});
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`User ${route} overflows at ${width}`);
+        if (route === 'dashboard' && width === 1440) {
+          await page.setViewportSize({width:1152, height:650});
+          await page.goto(`${origin}/?header=dark#/dashboard`);
+          await page.locator('#page-header').waitFor();
+          await page.waitForLoadState('networkidle');
+          await page.screenshot({path:join(output,'user-dashboard-dark-tablet-1152.png')});
+          await page.setViewportSize({width,height:900});
+          await page.goto(`${origin}/#/dashboard`);
+        }
         if(route==='profile') {
           console.log('Profile actions:', await page.getByRole('button').allTextContents());
           await page.getByRole('button',{name:/重\s*置|Reset/}).click();
