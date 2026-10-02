@@ -46,6 +46,11 @@ function html(kind, url) {
 }
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
+  if (url.pathname === '/monitor/api/stats') {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({status:'running'}));
+    return;
+  }
   if (url.pathname.startsWith('/api/')) {
     requests.push(url.pathname);
     let data = [];
@@ -70,6 +75,7 @@ const server = createServer(async (req, res) => {
     else if (url.pathname.endsWith('/group/fetch')) data = [{ id: 1, name: '测试组' }];
     else if (url.pathname.endsWith('/plan/fetch')) data = [{ id: 1, name: '测试订阅', transfer_enable: 100, month_price: 2000 }];
     else if (url.pathname.endsWith('/getOverride')) data = { month_income: 12345, day_income: 1200, order_count: 5, register_count: 20 };
+    else if (url.pathname.endsWith('/config/fetch')) data = {site:{currency:'CNY'}};
     else if (url.pathname.endsWith('/comm/config')) data = { is_telegram: 0, invite_commission: 10, currency: 'CNY', currency_symbol: '¥', deposit_bounus: [] };
     else if (url.pathname.endsWith('/getSubscribe')) data = { ...users[0], subscribe_url: 'https://example.test/sub', plan: { name: '测试订阅' } };
     else if (url.pathname.endsWith('/getStat')) data = [0, 0, 0];
@@ -163,21 +169,22 @@ try {
       }
       if (route === 'server/manage') {
         const addNode = page.getByRole('button', {name:'新增节点'});
+        const nodeDrawer = page.locator('.ant-drawer-open');
         await addNode.click();
         await page.locator('.ant-dropdown-menu:visible').getByText('V2node', {exact:true}).click();
-        await page.locator('.ant-drawer-content').waitFor();
-        await page.getByPlaceholder('请输入节点名称').last().fill('取消的草稿');
-        await page.locator('.ant-drawer-close').last().click();
+        await nodeDrawer.locator('.ant-drawer-content').waitFor();
+        await nodeDrawer.getByPlaceholder('请输入节点名称').fill('取消的草稿');
+        await nodeDrawer.locator('.ant-drawer-close').click();
         await page.locator('.ant-drawer-open').waitFor({state:'hidden'});
         delayNextNodeFetch = true;
         const staleResponse = page.waitForResponse(response => response.headers()['x-fixture-stale'] === '1');
         await page.getByRole('button', {name:'刷新节点'}).click();
         await addNode.click();
         await page.locator('.ant-dropdown-menu:visible').getByText('V2node', {exact:true}).click();
-        await page.locator('.ant-drawer-content').waitFor();
-        assert.equal(await page.getByPlaceholder('请输入节点名称').last().inputValue(), '', 'A new node inherited a cancelled draft');
-        await page.getByPlaceholder('请输入节点名称').last().fill(`新增测试节点-${width}`);
-        await page.locator('.ant-drawer-content').getByRole('button', {name:/提\s*交/}).last().click();
+        await nodeDrawer.locator('.ant-drawer-content').waitFor();
+        assert.equal(await nodeDrawer.getByPlaceholder('请输入节点名称').inputValue(), '', 'A new node inherited a cancelled draft');
+        await nodeDrawer.getByPlaceholder('请输入节点名称').fill(`新增测试节点-${width}`);
+        await nodeDrawer.getByRole('button', {name:/提\s*交/}).click();
         await page.getByText(`新增测试节点-${width}`).first().waitFor();
         releaseNodeFetch();
         await staleResponse;
