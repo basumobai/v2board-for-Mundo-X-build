@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -19,7 +19,7 @@ function fixture() {
   mkdirSync(join(source, 'scripts'));
   copyFileSync('update.sh', join(source, 'update.sh'));
   copyFileSync('scripts/deploy-common.sh', join(source, 'scripts/deploy-common.sh'));
-  writeFileSync(join(source, '.gitignore'), '.env\nconfig/v2board.php\nconfig/theme/\nstorage/\npublic/custom/\n/vendor/\n/node_modules/\n.install.lock\n');
+  writeFileSync(join(source, '.gitignore'), '.env\nconfig/v2board.php\nconfig/theme/\nstorage/\npublic/custom/\n/vendor/\nnode_modules/\n.install.lock\n');
   writeFileSync(join(source, 'release'), 'old');
   const gitEnv = { GIT_AUTHOR_NAME: 'Test', GIT_AUTHOR_EMAIL: 'test@example.test', GIT_COMMITTER_NAME: 'Test', GIT_COMMITTER_EMAIL: 'test@example.test' };
   run('git', ['add', '.'], source);
@@ -28,7 +28,10 @@ function fixture() {
   run('git', ['push', '-u', 'origin', 'master'], source);
   run('git', ['clone', remote, panel], root);
   writeFileSync(join(source, 'release'), 'new');
-  run('git', ['commit', '-am', 'new'], source, gitEnv);
+  mkdirSync(join(source, 'public/assets/runtime'), { recursive: true });
+  writeFileSync(join(source, 'public/assets/runtime/app.js'), 'console.log("new release");\n');
+  run('git', ['add', 'release', 'public/assets/runtime/app.js'], source);
+  run('git', ['commit', '-m', 'new'], source, gitEnv);
   run('git', ['push'], source);
   const before = run('git', ['rev-parse', 'HEAD'], panel);
   for (const path of ['config/theme', 'storage', 'public/custom/vendor', 'public/custom/node_modules', 'vendor', 'node_modules']) mkdirSync(join(panel, path), { recursive: true });
@@ -83,7 +86,11 @@ test('update preserves configuration and files and snapshots before migration', 
     assert.match(readFileSync(join(f.panel, 'config/theme/default.php'), 'utf8'), /dark/);
     assert.equal(readFileSync(join(f.panel, 'storage/user-file'), 'utf8'), 'preserve-storage');
     assert.equal(readFileSync(join(f.panel, 'public/custom/user.css'), 'utf8'), 'preserve-custom-css');
+    assert.equal(statSync(join(f.panel, 'public/assets/runtime')).mode & 0o777, 0o755, 'new public directories must remain traversable by nginx');
+    assert.equal(statSync(join(f.panel, 'public/assets/runtime/app.js')).mode & 0o777, 0o644, 'new public files must remain readable by nginx');
+    assert.equal(statSync(join(f.panel, 'public/custom/user.css')).mode & 0o004, 0o004, 'preserved public files must remain world-readable');
     const backup = join(f.env.UPDATE_BACKUP_ROOT, readdirSync(f.env.UPDATE_BACKUP_ROOT)[0]);
+    assert.equal(statSync(backup).mode & 0o077, 0, 'backup directory must stay private');
     assert.ok(existsSync(join(backup, 'COMPLETE')));
     assert.ok(!existsSync(join(backup, 'mysql-client.cnf')));
     run('sha256sum', ['-c', 'SHA256SUMS'], backup);
