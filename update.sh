@@ -133,10 +133,18 @@ tar -tzf "$backup_dir/redis.tar.gz" >/dev/null
 printf 'old_commit=%s\nnew_commit=%s\nbranch=%s\n' "$old_commit" "$new_commit" "$branch" > "$backup_dir/manifest.txt"
 (cd "$backup_dir" && sha256sum project.tar.gz database.sql redis.tar.gz manifest.txt > SHA256SUMS)
 touch "$backup_dir/COMPLETE"
+# Backups deliberately use umask 077. Do not let that private-file policy leak
+# into the Git checkout: Nginx must be able to traverse and read public assets.
+umask 022
 # Files absent from the commit (.env/config/theme/storage/custom themes) are not
 # removed by a fast-forward merge. No reset --hard, clean, or volume removal.
 git merge --ff-only "$new_commit"
 code_switched=true
+# Repair installations already affected by the leaked 077 umask. Everything in
+# public is web-facing by definition; keep owner write access and grant Nginx
+# traversal/read access without following symlinks.
+find public -type d -exec chmod u+rwx,go+rx {} +
+find public -type f -exec chmod u+rw,go+r {} +
 docker compose config --quiet
 docker compose build --pull web </dev/null
 docker compose up -d --wait --wait-timeout 120 redis
