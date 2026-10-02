@@ -45,6 +45,14 @@ body.mundo-user-shell {
     background: transparent !important;
 }
 
+.mundo-user-shell #sidebar .link-fx .text-white-75 {
+    color: var(--user-ink) !important;
+}
+
+.mundo-user-shell #page-container.sidebar-dark #sidebar .link-fx .text-white-75 {
+    color: #fff !important;
+}
+
 .mundo-user-shell #sidebar .nav-main-link,
 .mundo-user-shell #sidebar .nav-main-link-icon,
 .mundo-user-shell #sidebar .nav-main-heading,
@@ -108,6 +116,12 @@ body.mundo-user-shell {
     color: var(--user-ink);
     background: #f9fbff;
     border-bottom: 1px solid var(--user-line);
+    min-height: 48px;
+    padding: 11px 16px;
+}
+
+.mundo-user-shell .block-content {
+    padding: 16px 18px 1px;
 }
 
 .mundo-user-shell .block-title,
@@ -120,8 +134,16 @@ body.mundo-user-shell {
 }
 
 .mundo-user-shell .v2board-shortcuts-item {
+    padding: 14px 18px;
     border-color: var(--user-line);
     transition: background .18s ease, transform .18s ease;
+}
+
+.mundo-user-shell .v2board-shortcuts-item i {
+    top: 17px;
+    right: 18px;
+    font-size: 22px;
+    opacity: .55;
 }
 
 .mundo-user-shell .v2board-shortcuts-item:hover {
@@ -235,6 +257,24 @@ html[data-mundo-theme="darkblue"] body.mundo-user-shell {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
 }
+
+.mundo-user-shell #page-container.page-header-dark #page-header {
+    background: #29374d !important;
+    box-shadow: 0 5px 20px rgba(26, 39, 59, .12);
+}
+
+.mundo-user-shell #page-container.page-header-dark #page-header .btn-primary {
+    color: #f4f7fc;
+    background: rgba(255, 255, 255, .10);
+    border: 1px solid rgba(255, 255, 255, .18);
+    box-shadow: none;
+}
+
+.mundo-user-shell #page-container.page-header-dark #page-header .btn-primary:hover,
+.mundo-user-shell #page-container.page-header-dark #page-header .btn-primary:focus {
+    color: #fff;
+    background: rgba(255, 255, 255, .18);
+}
 .mundo-user-shell #page-container.sidebar-dark #sidebar :is(.nav-main-link, .nav-main-link-icon, .nav-main-heading, .text-dual),
 .mundo-user-shell #page-container.page-header-dark #page-header :is(.content-header, .v2board-container-title, .btn-dual) {
     color: #e7edf7 !important;
@@ -265,6 +305,27 @@ html[data-mundo-theme="darkblue"] body.mundo-user-shell {
 .mundo-user-shell .ant-table-fixed-left,
 .mundo-user-shell .ant-table-fixed-right {
     background: #fff;
+}
+
+@media (min-width: 992px) and (max-width: 1279.98px) {
+    .mundo-user-shell #sidebar {
+        width: 220px;
+    }
+
+    .mundo-user-shell #page-container.sidebar-o,
+    .mundo-user-shell #page-container.page-header-fixed.sidebar-o #page-header,
+    .mundo-user-shell #page-container.page-header-glass.sidebar-o #page-header {
+        padding-left: 220px;
+    }
+
+    .mundo-user-shell #page-container.side-scroll #sidebar .content-header,
+    .mundo-user-shell #page-container.side-scroll #sidebar .content-side {
+        width: 220px !important;
+    }
+
+    .mundo-user-shell #main-container > .p-0.p-lg-4 {
+        padding: 18px !important;
+    }
 }
 
 @media (max-width: 767px) {

@@ -39,7 +39,7 @@
             "light": "亮",
             "dark": "暗"
         },
-        "default_value": "dark"
+        "default_value": "light"
     }, {
         "label": "自定义页脚HTML",
         "placeholder": "可以实现客服JS代码的加入等",

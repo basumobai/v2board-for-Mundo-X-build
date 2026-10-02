@@ -20,6 +20,7 @@ class AdminFrontendAssetsTest extends TestCase
         $this->assertStringContainsString('id="mundo-admin-overrides"', $view);
         $this->assertStringContainsString('/assets/admin/custom.css?v={{$admin_ui_version}}', $view);
         $this->assertStringContainsString('/assets/admin/custom.js?v={{$admin_ui_version}}', $view);
+        $this->assertStringContainsString('/assets/admin/umi.js?v={{$admin_ui_version}}', $view);
 
         $routes = file_get_contents($this->projectPath('routes/web.php'));
         $this->assertStringContainsString('FrontendAssets::version(', $routes);

@@ -18,10 +18,12 @@ const users = Array.from({ length: 8 }, (_, i) => ({
   plan_id: 1, plan_name: '测试订阅', expired_at: 1900000000,
   created_at: 1700000000, updated_at: 1700000000, uuid: 'fixture-uuid',
 }));
-const nodes = [{ id: 1, name: '香港测试节点', type: 'vmess', host: 'node.example.test',
+let nodes = [{ id: 1, name: '香港测试节点', type: 'vmess', host: 'node.example.test',
   port: 443, server_port: 443, show: 1, rate: 1, online: 3, available_status: 1,
   group_id: [1], tls: 1, network: 'ws', alter_id: 0, parent_id: null }];
 const requests = [];
+let delayNextNodeFetch = false;
+let failNextNodeFetch = false;
 function html(kind, url) {
   const user = kind === 'user';
   const color = url.searchParams.get('color') || 'default';
@@ -41,7 +43,7 @@ function html(kind, url) {
     .replace(/\{\{\$(\w+)\}\}/g, (_, key) => values[key] || '');
   return template;
 }
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname.startsWith('/api/')) {
     requests.push(url.pathname);
@@ -52,7 +54,18 @@ const server = createServer((req, res) => {
     else if (url.pathname.endsWith('/user/info')) data = users[0];
     else if (url.pathname.endsWith('/getUserInfoById')) data = users[0];
     else if (url.pathname.endsWith('/user/fetch')) { data = users; total = users.length; }
-    else if (url.pathname.endsWith('/getNodes')) data = nodes;
+    else if (url.pathname.endsWith('/getNodes')) {
+      data = nodes.map(node => ({...node}));
+      if (delayNextNodeFetch) {
+        delayNextNodeFetch = false;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else if (failNextNodeFetch) {
+        failNextNodeFetch = false;
+        res.statusCode = 500;
+        res.end(JSON.stringify({code: 500, message: 'Fixture refresh failure'}));
+        return;
+      }
+    }
     else if (url.pathname.endsWith('/group/fetch')) data = [{ id: 1, name: '测试组' }];
     else if (url.pathname.endsWith('/plan/fetch')) data = [{ id: 1, name: '测试订阅', transfer_enable: 100, month_price: 2000 }];
     else if (url.pathname.endsWith('/getOverride')) data = { month_income: 12345, day_income: 1200, order_count: 5, register_count: 20 };
@@ -60,6 +73,13 @@ const server = createServer((req, res) => {
     else if (url.pathname.endsWith('/getSubscribe')) data = { ...users[0], subscribe_url: 'https://example.test/sub', plan: { name: '测试订阅' } };
     else if (url.pathname.endsWith('/getStat')) data = [0, 0, 0];
     else if (url.pathname.endsWith('/server/fetch')) data = nodes;
+    else if (url.pathname.endsWith('/server/v2node/save')) {
+      const body = (await Array.fromAsync(req)).map(chunk => chunk.toString()).join('');
+      const name = req.headers['content-type']?.includes('json') ? JSON.parse(body).name : new URLSearchParams(body).get('name');
+      if (!name) { res.statusCode = 422; res.end(JSON.stringify({code: 422, message: 'Name required'})); return; }
+      nodes = [...nodes, { ...nodes[0], id: nodes.length + 1, name, type: 'v2node' }];
+      data = true;
+    }
     else if (/\/(save|update|drop|cancel|paid)$/.test(url.pathname)) data = true;
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ data, total, code: 200, status: 'success' }));
@@ -133,6 +153,29 @@ try {
         await page.locator('.ant-modal-content .ant-btn').first().click();
       }
       if (route === 'server/manage') {
+        const addNode = page.getByRole('button', {name:'新增节点'});
+        await addNode.click();
+        await page.locator('.ant-dropdown-menu:visible').getByText('V2node', {exact:true}).click();
+        await page.locator('.ant-drawer-content').waitFor();
+        await page.locator('.ant-drawer-close').last().click();
+        await page.locator('.ant-drawer-content').waitFor({state:'hidden'});
+        delayNextNodeFetch = true;
+        await page.getByRole('button', {name:'刷新节点'}).click();
+        await addNode.click();
+        await page.locator('.ant-dropdown-menu:visible').getByText('V2node', {exact:true}).click();
+        await page.locator('.ant-drawer-content').waitFor();
+        await page.getByPlaceholder('请输入节点名称').last().fill(`新增测试节点-${width}`);
+        await page.locator('.ant-drawer-content').getByRole('button', {name:'提交'}).last().click();
+        await page.getByText(`新增测试节点-${width}`).first().waitFor();
+        await page.waitForTimeout(800);
+        assert.ok(await page.getByText(`新增测试节点-${width}`).first().isVisible(), 'An older list response replaced the saved node');
+        failNextNodeFetch = true;
+        await page.getByRole('button', {name:'刷新节点'}).click();
+        await page.getByRole('button', {name:'刷新节点'}).waitFor({state:'visible'});
+        await page.waitForFunction(() => !document.querySelector('button[aria-label="刷新节点"]')?.classList.contains('ant-btn-loading'));
+        await addNode.click();
+        await page.locator('.ant-dropdown-menu:visible').waitFor();
+        await addNode.click();
         const nodeTrigger = page.locator(width === 390 ? '.v2board_node_mobile .ant-dropdown-trigger' : '.ant-table-fixed-right .ant-dropdown-trigger').first();
         await nodeTrigger.click();
         await page.locator('.ant-dropdown-menu:visible').getByText('编辑', {exact:true}).click();
