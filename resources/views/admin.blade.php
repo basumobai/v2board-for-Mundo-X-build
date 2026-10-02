@@ -13,6 +13,22 @@
     <!-- <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito+Sans:300,400,400i,600,700"> -->
     <script>window.routerBase = "/";</script>
     <script>
+        // Guard the legacy skip fragment before the hash router sees it. Keep the
+        // listener alive so same-document edits/pasted old URLs are recovered too.
+        (function () {
+            function recoverLegacySkipRoute() {
+                if (window.location.hash === '#main-container') {
+                    window.history.replaceState(
+                        window.history.state,
+                        '',
+                        window.location.pathname + window.location.search + '#/dashboard'
+                    );
+                }
+            }
+
+            recoverLegacySkipRoute();
+            window.addEventListener('hashchange', recoverLegacySkipRoute, true);
+        }());
         window.settings = {
             title: '{{$title}}',
             theme: {
@@ -30,7 +46,7 @@
 </head>
 
 <body class="mundo-admin-shell">
-<a class="mundo-skip-link" href="#main-container">跳到主要内容</a>
+<button class="mundo-skip-link" type="button">跳到主要内容</button>
 <noscript>
     <div class="mundo-noscript" role="alert">管理员界面需要启用 JavaScript 才能使用。</div>
 </noscript>

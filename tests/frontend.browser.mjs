@@ -53,6 +53,12 @@ const server = createServer(async (req, res) => {
   }
   if (url.pathname.startsWith('/api/')) {
     requests.push(url.pathname);
+    if (url.pathname.endsWith('/user/info') && !req.headers.authorization) {
+      res.statusCode=403;
+      res.setHeader('Content-Type','application/json');
+      res.end(JSON.stringify({message:'未登录'}));
+      return;
+    }
     let data = [];
     let total;
     if (url.pathname.endsWith('/checkLogin')) data = { is_admin: 1 };
@@ -113,13 +119,44 @@ try {
     const page = await context.newPage();
     page.setDefaultTimeout(10000);
     const errors = []; page.on('pageerror', e => errors.push(e.message));
-    await page.goto(`${origin}/admin#/login`);
+    await page.goto(`${origin}/admin#main-container`);
     await page.locator('.v2board-auth-box input[type=password]').waitFor();
     await page.screenshot({ path: join(output, `admin-login-${width}.png`) });
     await page.locator('.v2board-auth-box input[type=email]').fill('admin@example.test');
     await page.locator('.v2board-auth-box input[type=password]').fill('fixture-password');
     await page.locator('.v2board-auth-box button[type=submit]').click();
     await page.waitForFunction(() => location.hash === '#/dashboard');
+    // The skip control must move focus, never replace the SPA's hash route.
+    const skip = page.getByRole('button',{name:'跳到主要内容',exact:true});
+    for (const activation of ['click','Enter','Space']) {
+      await skip.focus();
+      if (activation === 'click') await skip.click();
+      else await skip.press(activation);
+      assert.equal(await page.evaluate(()=>location.hash),'#/dashboard',`Skip ${activation} changed the route`);
+      await page.locator('#page-container').waitFor();
+      assert.equal(await page.evaluate(()=>document.activeElement?.id),'main-container','Skip did not focus main content');
+    }
+    await skip.evaluate(button=>{
+      const legacy=document.createElement('a');
+      legacy.className=button.className;
+      legacy.href='#main-container';
+      legacy.textContent=button.textContent;
+      button.replaceWith(legacy);
+    });
+    const cachedSkip=page.getByRole('link',{name:'跳到主要内容',exact:true});
+    await cachedSkip.focus();
+    await cachedSkip.click();
+    assert.equal(await page.evaluate(()=>location.hash),'#/dashboard','A cached skip link broke the route');
+    assert.equal(await page.evaluate(()=>document.activeElement?.id),'main-container');
+    await page.goto(`${origin}/admin#main-container`);
+    await page.waitForFunction(()=>location.hash==='#/dashboard');
+    await page.locator('#page-container').waitFor();
+    // Also verify startup recovery on a fresh document with an existing session.
+    await page.goto('about:blank');
+    await page.goto(`${origin}/admin#main-container`);
+    await page.waitForFunction(()=>location.hash==='#/dashboard');
+    await page.locator('#page-container').waitFor();
+    await page.screenshot({path:join(output,`admin-legacy-skip-recovered-${width}.png`)});
     for (const route of ['dashboard', 'user', 'server/manage']) {
       await page.goto(`${origin}/admin#/${route}`);
       await page.locator('#main-container').waitFor();
