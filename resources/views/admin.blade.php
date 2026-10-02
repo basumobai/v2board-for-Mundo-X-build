@@ -13,10 +13,22 @@
     <!-- <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito+Sans:300,400,400i,600,700"> -->
     <script>window.routerBase = "/";</script>
     <script>
-        // Recover links produced by the old skip control before the hash router starts.
-        if (window.location.hash === '#main-container') {
-            window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search + '#/dashboard');
-        }
+        // Guard the legacy skip fragment before the hash router sees it. Keep the
+        // listener alive so same-document edits/pasted old URLs are recovered too.
+        (function () {
+            function recoverLegacySkipRoute() {
+                if (window.location.hash === '#main-container') {
+                    window.history.replaceState(
+                        window.history.state,
+                        '',
+                        window.location.pathname + window.location.search + '#/dashboard'
+                    );
+                }
+            }
+
+            recoverLegacySkipRoute();
+            window.addEventListener('hashchange', recoverLegacySkipRoute, true);
+        }());
         window.settings = {
             title: '{{$title}}',
             theme: {
