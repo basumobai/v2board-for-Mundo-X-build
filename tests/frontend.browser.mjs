@@ -168,7 +168,7 @@ try {
         await page.locator('.ant-drawer-content').waitFor();
         await page.getByPlaceholder('请输入节点名称').last().fill('取消的草稿');
         await page.locator('.ant-drawer-close').last().click();
-        await page.locator('.ant-drawer-content').waitFor({state:'hidden'});
+        await page.locator('.ant-drawer-open').waitFor({state:'hidden'});
         delayNextNodeFetch = true;
         const staleResponse = page.waitForResponse(response => response.headers()['x-fixture-stale'] === '1');
         await page.getByRole('button', {name:'刷新节点'}).click();
@@ -177,7 +177,7 @@ try {
         await page.locator('.ant-drawer-content').waitFor();
         assert.equal(await page.getByPlaceholder('请输入节点名称').last().inputValue(), '', 'A new node inherited a cancelled draft');
         await page.getByPlaceholder('请输入节点名称').last().fill(`新增测试节点-${width}`);
-        await page.locator('.ant-drawer-content').getByRole('button', {name:'提交'}).last().click();
+        await page.locator('.ant-drawer-content').getByRole('button', {name:/提\s*交/}).last().click();
         await page.getByText(`新增测试节点-${width}`).first().waitFor();
         releaseNodeFetch();
         await staleResponse;
