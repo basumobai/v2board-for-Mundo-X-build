@@ -216,7 +216,7 @@ try {
         await page.getByRole('button', {name:'刷新节点'}).click();
         await page.getByRole('button', {name:'刷新节点'}).waitFor({state:'visible'});
         await page.waitForFunction(() => !document.querySelector('button[aria-label="刷新节点"]')?.classList.contains('ant-btn-loading'));
-        const recoveryResponse = page.waitForResponse(response => response.url().endsWith('/getNodes'));
+        const recoveryResponse = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/getNodes'));
         await page.getByRole('button', {name:'刷新节点'}).click();
         await recoveryResponse;
         await addNode.click();
