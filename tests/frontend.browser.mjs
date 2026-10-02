@@ -53,6 +53,12 @@ const server = createServer(async (req, res) => {
   }
   if (url.pathname.startsWith('/api/')) {
     requests.push(url.pathname);
+    if (url.pathname.endsWith('/user/info') && !req.headers.authorization) {
+      res.statusCode=403;
+      res.setHeader('Content-Type','application/json');
+      res.end(JSON.stringify({message:'未登录'}));
+      return;
+    }
     let data = [];
     let total;
     if (url.pathname.endsWith('/checkLogin')) data = { is_admin: 1 };
