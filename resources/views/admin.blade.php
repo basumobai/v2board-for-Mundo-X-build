@@ -38,6 +38,7 @@
             },
             version: '{{$version}}',
             ui_version: '{{$admin_ui_version}}',
+            bundle_version: '{{$admin_bundle_version}}',
             background_url: '{{$background_url}}',
             logo: '{{$logo}}',
             secure_path: '{{$secure_path}}'
@@ -53,7 +54,7 @@
 <div id="root"></div>
 <script src="/assets/admin/vendors.async.js?v={{$version}}"></script>
 <script src="/assets/admin/components.async.js?v={{$version}}"></script>
-<script src="/assets/admin/umi.js?v={{$admin_ui_version}}"></script>
+<script src="/assets/admin/umi.js?v={{$admin_bundle_version}}"></script>
 <script src="/assets/admin/custom.js?v={{$admin_ui_version}}"></script>
 </body>
 
