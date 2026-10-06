@@ -98,6 +98,8 @@ const server = createServer(async (req, res) => {
     }
     else if (url.pathname.endsWith('/getQueueStats')) data = {failedJobs:0,jobsPerMinute:0,pausedMasters:0,periods:{failedJobs:10080,recentJobs:60},processes:1,queueWithMaxRuntime:null,queueWithMaxThroughput:null,recentJobs:0,status:true,wait:[]};
     else if (url.pathname.endsWith('/getQueueWorkload')) data = [];
+    else if (url.pathname.endsWith('/getThemes')) data = {themes:{default:JSON.parse(readFileSync(new URL('./fixtures/xiao-admin/theme.json', import.meta.url),'utf8'))},active:'default'};
+    else if (url.pathname.endsWith('/getThemeConfig')) data = {theme_color:'default',theme_sidebar:'light',theme_header:'dark',background_url:''};
     else if (url.pathname.endsWith('/comm/config')) data = { is_telegram: 0, invite_commission: 10, currency: 'CNY', currency_symbol: '¥', deposit_bounus: [] };
     else if (url.pathname.endsWith('/getSubscribe')) data = { ...users[0], subscribe_url: 'https://example.test/sub', plan: { name: '测试订阅' } };
     else if (url.pathname.endsWith('/getStat')) data = [0, 0, 0];
@@ -308,11 +310,15 @@ try {
       }
     }
     if (xiao) {
+      const titles = {plan:'订阅管理',order:'订单管理',ticket:'工单管理',coupon:'优惠券管理',giftcard:'礼品卡管理',knowledge:'知识库管理',notice:'公告管理','server/group':'权限组管理','server/route':'路由管理','config/system':'系统配置','config/payment':'支付配置','config/theme':'主题配置',queue:'队列监控'};
       for (const route of ['plan','order','ticket','coupon','giftcard','knowledge','notice','server/group','server/route','config/system','config/payment','config/theme','queue']) {
         try {
           await page.goto(`${origin}/admin#/${route}`);
+          await page.locator('#page-header').getByText(titles[route], {exact:true}).waitFor();
           await page.locator('#main-container').waitFor();
-          await page.waitForTimeout(500);
+          await page.waitForLoadState('networkidle');
+          await page.waitForTimeout(250);
+          assert.deepEqual(consoleErrors.filter(message => /^(TypeError|ReferenceError|uncaught at|Error: Minified)/.test(message)), [], `Xiao ${route} caught a React rendering error`);
           assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Xiao ${route} overflows at ${width}`);
           await page.screenshot({path:join(output,`xiao-${route.replace('/','-')}-${width}.png`)});
         } catch (error) {
