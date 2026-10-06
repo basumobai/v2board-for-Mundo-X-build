@@ -33,3 +33,25 @@ export function validateXiaoV2node(params) {
   if (typeof params.network_settings === 'string') problems.push('network_settings must be an array/object, not JSON text');
   return problems;
 }
+
+// The legacy HTTP client sends PHP bracket notation, not JSON. Match PHP's
+// nested form parsing and Laravel's ConvertEmptyStringsToNull middleware.
+export function decodePhpForm(body) {
+  const result = {};
+  for (const [name, raw] of new URLSearchParams(body)) {
+    const head = name.match(/^[^\[]+/)?.[0];
+    if (!head) continue;
+    const parts = [head, ...Array.from(name.matchAll(/\[([^\]]*)\]/g), match => match[1])];
+    if (parts.some(part => ['__proto__', 'prototype', 'constructor'].includes(part))) throw new Error('Unsafe form key');
+    let parent = result;
+    for (let index = 0; index < parts.length; index++) {
+      const key = parts[index] === '' ? String(parent.length || 0) : parts[index];
+      if (index === parts.length - 1) parent[key] = raw === '' ? null : raw;
+      else {
+        parent[key] ||= parts[index + 1] === '' || /^\d+$/.test(parts[index + 1]) ? [] : {};
+        parent = parent[key];
+      }
+    }
+  }
+  return result;
+}

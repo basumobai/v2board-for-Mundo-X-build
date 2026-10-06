@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { Script } from 'node:vm';
 import { test, after } from 'node:test';
 import { buildXiaoAdmin } from '../scripts/build-xiao-admin.mjs';
-import { validateXiaoV2node, xiaoApiRoutes, xiaoCompatibility } from './xiao-contract.mjs';
+import { validateXiaoV2node, xiaoApiRoutes, xiaoCompatibility, decodePhpForm } from './xiao-contract.mjs';
 
 const scratch = mkdtempSync(join(tmpdir(), 'xiao-admin-test-'));
 const output = buildXiaoAdmin(join(scratch, 'package'));
@@ -55,6 +55,12 @@ test('API contract is pinned to actual Xiao routes and has no Mundo endpoints', 
   assert.deepEqual(validateXiaoV2node(valid), []);
   for (const network of ['mc1', 'mundordp']) assert.ok(validateXiaoV2node({ ...valid, network }).some(error => error.startsWith('network')));
   assert.ok(validateXiaoV2node({ ...valid, protocol: 'mx' }).some(error => error.startsWith('protocol')));
+});
+
+test('contract fixtures decode the shipped clients PHP form arrays and nullable fields', () => {
+  const form = new URLSearchParams({ 'group_id[0]': '1', 'group_id[1]': '2', 'tls_settings[server_name]': 'node.example.test', network_settings: '' });
+  assert.deepEqual(decodePhpForm(form.toString()), { group_id: ['1', '2'], tls_settings: { server_name: 'node.example.test' }, network_settings: null });
+  assert.deepEqual(decodePhpForm('tags%5B%5D=one&tags%5B%5D=two'), { tags: ['one', 'two'] });
 });
 
 function fixture(name) {

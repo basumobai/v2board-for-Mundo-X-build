@@ -6,7 +6,7 @@ import { readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve, extname, join } from 'node:path';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
-import { xiaoApiRoutes, validateXiaoV2node } from './xiao-contract.mjs';
+import { xiaoApiRoutes, validateXiaoV2node, decodePhpForm } from './xiao-contract.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright');
 const root = resolve(process.env.UI_PROJECT_ROOT || '.');
@@ -104,7 +104,7 @@ const server = createServer(async (req, res) => {
     else if (url.pathname.endsWith('/server/fetch')) data = nodes;
     else if (url.pathname.endsWith('/server/v2node/save')) {
       const body = (await Array.fromAsync(req)).map(chunk => chunk.toString()).join('');
-      const params = req.headers['content-type']?.includes('json') ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body));
+      const params = req.headers['content-type']?.includes('json') ? JSON.parse(body) : decodePhpForm(body);
       const name = params.name;
       if (xiao) {
         const problems = validateXiaoV2node(params);
