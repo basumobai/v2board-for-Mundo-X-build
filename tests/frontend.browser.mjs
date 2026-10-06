@@ -146,6 +146,9 @@ try {
     const page = await context.newPage();
     page.setDefaultTimeout(10000);
     const errors = []; page.on('pageerror', e => errors.push(e.message));
+    const consoleErrors = []; page.on('console', message => {
+      if (message.type() === 'error') consoleErrors.push(message.text());
+    });
     await page.goto(`${origin}/admin#main-container`);
     await page.locator('.v2board-auth-box input[type=password]').waitFor();
     await page.screenshot({ path: join(output, `admin-login-${width}.png`) });
@@ -314,6 +317,8 @@ try {
           await page.screenshot({path:join(output,`xiao-${route.replace('/','-')}-${width}.png`)});
         } catch (error) {
           console.log(`Xiao ${route}/${width} failed; errors: ${JSON.stringify(errors)}; APIs: ${JSON.stringify(requests)}; contract: ${JSON.stringify(contractViolations)}`);
+          console.log('Console errors:', consoleErrors);
+          console.log('Page state:', await page.evaluate(() => ({url:location.href,root:document.getElementById('root')?.innerHTML.slice(0,800),appKeys:Object.keys(window.g_app || {}),storeKeys:Object.keys(window.g_app?._store?.getState() || {})})));
           console.log(await page.locator('body').innerText());
           await page.screenshot({path:join(output,`xiao-${route.replace('/','-')}-failure-${width}.png`)});
           throw error;
