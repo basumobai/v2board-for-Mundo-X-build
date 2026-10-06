@@ -306,11 +306,18 @@ try {
     }
     if (xiao) {
       for (const route of ['plan','order','ticket','coupon','giftcard','knowledge','notice','server/group','server/route','config/system','config/payment','config/theme','queue']) {
-        await page.goto(`${origin}/admin#/${route}`);
-        await page.locator('#main-container').waitFor();
-        await page.waitForTimeout(500);
-        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Xiao ${route} overflows at ${width}`);
-        await page.screenshot({path:join(output,`xiao-${route.replace('/','-')}-${width}.png`)});
+        try {
+          await page.goto(`${origin}/admin#/${route}`);
+          await page.locator('#main-container').waitFor();
+          await page.waitForTimeout(500);
+          assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Xiao ${route} overflows at ${width}`);
+          await page.screenshot({path:join(output,`xiao-${route.replace('/','-')}-${width}.png`)});
+        } catch (error) {
+          console.log(`Xiao ${route}/${width} failed; errors: ${JSON.stringify(errors)}; APIs: ${JSON.stringify(requests)}; contract: ${JSON.stringify(contractViolations)}`);
+          console.log(await page.locator('body').innerText());
+          await page.screenshot({path:join(output,`xiao-${route.replace('/','-')}-failure-${width}.png`)});
+          throw error;
+        }
       }
     }
     if (width === 390) {
