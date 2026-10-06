@@ -1,0 +1,176 @@
+{
+  "sourceSha256": "2bbf8faecbfed7b2bda9c6f9b0d5a7f2cf39842bcda4f51c3a55001e427cf955",
+  "outputSha256": "4a91248a12952aa6a096686ce5097629c52f2bcde1eace5756582febb4f29b0d",
+  "edits": [
+    {
+      "startLine": 5415,
+      "oldText": "                            var result = yield Object(o[\"a\"])(\"/\" + window.settings.secure_path + \"/server/manage/getNodes\", { _mundo_refresh: Date.now() + \"-\" + requestId });\n",
+      "newText": "                            var result = yield Object(o[\"a\"])(\"/\" + window.settings.secure_path + \"/server/manage/getNodes\", { _admin_refresh: Date.now() + \"-\" + requestId });\n"
+    },
+    {
+      "startLine": 12412,
+      "oldText": "                        }, null, 4),\n                        mundordp: JSON.stringify({\n                            username: \"MundoUser\",\n                            certificateFingerprint: \"\",\n                            fakeTitle: \"\",\n                            fakeMessage: \"\",\n                            acceptProxyProtocol: false,\n                            useTLSCertificate: false\n",
+      "newText": ""
+    },
+    {
+      "startLine": 12599,
+      "oldText": "                }, \"XHTTP\"), d.a.createElement(a[\"a\"].Option, {\n                    value: \"mundordp\"\n                }, \"Mundo RDP\")))), d.a.createElement(\"div\", {\n",
+      "newText": "                }, \"XHTTP\")))), d.a.createElement(\"div\", {\n"
+    },
+    {
+      "startLine": 73820,
+      "oldText": "                ), (\"MGate\" === r || r && r.includes(\"Paytaro\")) && d.a.createElement(\"div\", {\n",
+      "newText": "                ), r && r.includes(\"Paytaro\") && d.a.createElement(\"div\", {\n"
+    },
+    {
+      "startLine": 73825,
+      "oldText": "                }, \"MGate\" === r ? \"MGate TG@nulledsan\" : d.a.createElement(d.a.Fragment, null, \"\\u5ba2\\u670dTG\", d.a.createElement(\"a\", {\n",
+      "newText": "                }, \"\\u5ba2\\u670dTG\", d.a.createElement(\"a\", {\n"
+    },
+    {
+      "startLine": 73837,
+      "oldText": "                }, \"https://v3.paytaro.com\")))))))\n",
+      "newText": "                }, \"https://v3.paytaro.com\"))))))\n"
+    },
+    {
+      "startLine": 80380,
+      "oldText": "                }\n            }\n        }\n    },\n    callMx: function(e, t, n) {\n        \"use strict\";\n        n.r(t);\n        var r = n(\"p0pE\")\n          , i = n.n(r)\n          , o = n(\"t3Un\")\n          , a = {\n            switchLoading: {},\n            saveLoading: !1\n        }\n          , s = function(e) {\n            return \"/\" + window.settings.secure_path + \"/server/mx/\" + e\n        };\n        t[\"default\"] = {\n            name: \"serverMx\",\n            state: i()({}, a),\n            reducers: {\n                setState(e, t) {\n                    var n = t.payload;\n                    return i()({}, e, n)\n                }\n            },\n            effects: {\n                update(e, t) {\n                    var n = e.id\n                      , r = e.key\n                      , i = e.value\n                      , a = t.put;\n                    return Object(o[\"b\"])(s(\"update\"), {\n                        id: n,\n                        [r]: i\n                    }).then(function(e) {\n                        200 === e.code && a({\n                            type: \"serverManage/getNodes\"\n                        })\n                    })\n                },\n                drop(e, t) {\n                    var n = e.id\n                      , r = t.put;\n                    return Object(o[\"b\"])(s(\"drop\"), {\n                        id: n\n                    }).then(function(e) {\n                        200 === e.code && r({\n                            type: \"serverManage/getNodes\"\n                        })\n                    })\n                },\n                copy(e, t) {\n                    var n = e.id\n                      , r = t.put;\n                    return Object(o[\"b\"])(s(\"copy\"), {\n                        id: n\n                    }).then(function(e) {\n                        200 === e.code && r({\n                            type: \"serverManage/getNodes\"\n                        })\n                    })\n                },\n                save(e, t) {\n                    var n = e.params\n                      , r = e.callback\n                      , i = t.put;\n                    return i({\n                        type: \"setState\",\n                        payload: {\n                            saveLoading: !0\n                        }\n                    }),\n                    Object(o[\"b\"])(s(\"save\"), n).then(function(e) {\n                        if (i({\n                            type: \"setState\",\n                            payload: {\n                                saveLoading: !1\n                            }\n                        }),\n                        200 !== e.code)\n                            return;\n                        i({\n                            type: \"serverManage/getNodes\"\n                        }),\n                        \"function\" === typeof r && r()\n                    })\n",
+      "newText": ""
+    },
+    {
+      "startLine": 105154,
+      "oldText": "                        }, null, 4),\n                        mundordp: JSON.stringify({\n                            username: \"MundoUser\",\n                            certificateFingerprint: \"\",\n                            fakeTitle: \"\",\n                            fakeMessage: \"\",\n                            acceptProxyProtocol: false,\n                            useTLSCertificate: false\n",
+      "newText": ""
+    },
+    {
+      "startLine": 105339,
+      "oldText": "                }, \"XHTTP\"), y.a.createElement(N[\"a\"].Option, {\n                    value: \"mundordp\"\n                }, \"Mundo RDP\")))), y.a.createElement(\"div\", {\n",
+      "newText": "                }, \"XHTTP\")))), y.a.createElement(\"div\", {\n"
+    },
+    {
+      "startLine": 106115,
+      "oldText": "",
+      "newText": "                var e;\n"
+    },
+    {
+      "startLine": 106116,
+      "oldText": "                    var e = JSON.parse(JSON.stringify(this.state.server));\n",
+      "newText": "                    e = JSON.parse(JSON.stringify(this.state.server));\n"
+    },
+    {
+      "startLine": 106119,
+      "oldText": "                    var t = this.props.mxOnly || e.type === \"mx\" || e.protocol === \"mx\";\n                    if (t) {\n                        e.protocol = \"mx\";\n                        e.tls = null == e.tls ? 1 : e.tls;\n                        e.network = e.network || \"tcp\";\n                        e.rate = null == e.rate || \"\" === e.rate ? 1 : e.rate;\n                        e.group_id = e.group_id || [];\n                        delete e.type;\n                        delete e.disable_sni;\n                        delete e.zero_rtt_handshake;\n                        delete e.udp_relay_mode;\n                        delete e.congestion_control;\n                        delete e.cipher;\n                        delete e.up_mbps;\n                        delete e.down_mbps;\n                        delete e.obfs;\n                        delete e.obfs_password;\n                        delete e.padding_scheme;\n                        delete e.flow;\n                        delete e.encryption;\n                        delete e.encryption_settings\n",
+      "newText": "                } catch (error) {\n                    n(\"TeRw\")[\"a\"].error({ message: \"网络配置格式有误\", description: \"请检查 JSON 格式后重试\", duration: 4 });\n                    return;\n                }\n                this.props.dispatch({\n                    type: \"serverV2node/save\",\n                    params: e,\n                    callback: ()=>{\n                        this.onShow()\n"
+    },
+    {
+      "startLine": 106141,
+      "oldText": "                    this.props.dispatch({\n                        type: t ? \"serverMx/save\" : \"serverV2node/save\",\n                        params: e,\n                        callback: ()=>{\n                            this.onShow()\n                        }\n                    })\n                } catch (e) {\n                    window.console && console.error && console.error(e)\n                }\n",
+      "newText": "                })\n"
+    },
+    {
+      "startLine": 106199,
+      "oldText": "                        mc1: JSON.stringify({\n                            host: \"example.com\",\n                            mode: \"auto\",\n                            path: \"/path\",\n                            cidrSegments: [\"127.0.0.0/24\"]\n                        }, null, 4),\n",
+      "newText": ""
+    },
+    {
+      "startLine": 106215,
+      "oldText": "                        }, null, 4),\n                        mundordp: JSON.stringify({\n                            username: \"MundoUser\",\n                            certificateFingerprint: \"\",\n                            fakeTitle: \"\",\n                            fakeMessage: \"\",\n                            acceptProxyProtocol: false,\n                            useTLSCertificate: false\n",
+      "newText": ""
+    },
+    {
+      "startLine": 106304,
+      "oldText": "                if (e === \"protocol\" && [\"anytls\", \"hysteria2\", \"trojan\", \"tuic\", \"mx\"].includes(t)) {\n",
+      "newText": "                if (e === \"protocol\" && [\"anytls\", \"hysteria2\", \"trojan\", \"tuic\"].includes(t)) {\n"
+    },
+    {
+      "startLine": 106434,
+      "oldText": "                }, !this.props.mxOnly && y.a.createElement(\"div\", {\n",
+      "newText": "                }, y.a.createElement(\"div\", {\n"
+    },
+    {
+      "startLine": 106446,
+      "oldText": "                    key: 7,\n                    value: \"mx\"\n                }, \"Mundo X\"), y.a.createElement(N[\"a\"].Option, {\n",
+      "newText": ""
+    },
+    {
+      "startLine": 106468,
+      "oldText": "                }, y.a.createElement(\"label\", null, \"\\u5b89\\u5168\\u6027 \", (parseInt(e.tls) != 0 || e.protocol == \"hysteria2\" || e.protocol == \"trojan\" || e.protocol == \"tuic\" || e.protocol == \"mx\") && y.a.createElement(\"a\", {\n",
+      "newText": "                }, y.a.createElement(\"label\", null, \"\\u5b89\\u5168\\u6027 \", (parseInt(e.tls) != 0 || e.protocol == \"hysteria2\" || e.protocol == \"trojan\" || e.protocol == \"tuic\") && y.a.createElement(\"a\", {\n"
+    },
+    {
+      "startLine": 106472,
+      "oldText": "                    value: parseInt(e.tls) || (e.protocol == \"hysteria2\" || e.protocol == \"trojan\" || e.protocol == \"tuic\" || e.protocol == \"mx\" ? 1 : 0),\n",
+      "newText": "                    value: parseInt(e.tls) || (e.protocol == \"hysteria2\" || e.protocol == \"trojan\" || e.protocol == \"tuic\" ? 1 : 0),\n"
+    },
+    {
+      "startLine": 106477,
+      "oldText": "                }, (e.protocol == \"vless\" || e.protocol == \"vmess\" || e.protocol == \"mx\") && y.a.createElement(N[\"a\"].Option, {\n",
+      "newText": "                }, (e.protocol == \"vless\" || e.protocol == \"vmess\") && y.a.createElement(N[\"a\"].Option, {\n"
+    },
+    {
+      "startLine": 106483,
+      "oldText": "                }, \"TLS\"), (e.protocol == \"vless\" || e.protocol == \"anytls\" || e.protocol == \"mx\") && y.a.createElement(N[\"a\"].Option, {\n",
+      "newText": "                }, \"TLS\"), (e.protocol == \"vless\" || e.protocol == \"anytls\") && y.a.createElement(N[\"a\"].Option, {\n"
+    },
+    {
+      "startLine": 106524,
+      "oldText": "                }, \"gRPC\"), y.a.createElement(N[\"a\"].Option, {\n                    value: \"mc1\"\n                }, \"Mundo Connect 1\"), e.protocol != \"trojan\" && e.protocol != \"mx\" && y.a.createElement(N[\"a\"].Option, {\n",
+      "newText": "                }, \"gRPC\"), e.protocol != \"trojan\" && y.a.createElement(N[\"a\"].Option, {\n"
+    },
+    {
+      "startLine": 106530,
+      "oldText": "                }, \"XHTTP\"), y.a.createElement(N[\"a\"].Option, {\n                    value: \"mundordp\"\n                }, \"Mundo RDP\")))), e.network != null && (e.network == \"xhttp\" || e.network == \"ws\" || e.network == \"grpc\") && y.a.createElement(\"div\", {\n",
+      "newText": "                }, \"XHTTP\")))), e.network != null && (e.network == \"xhttp\" || e.network == \"ws\" || e.network == \"grpc\") && y.a.createElement(\"div\", {\n"
+    },
+    {
+      "startLine": 106740,
+      "oldText": "                    if ((this.props.mxOnly ? \"mx\" : \"v2node\") === t.type && t.id !== e.id) return y.a.createElement(N[\"a\"].Option, {\n",
+      "newText": "                    if (\"v2node\" === t.type && t.id !== e.id) return y.a.createElement(N[\"a\"].Option, {\n"
+    },
+    {
+      "startLine": 106859,
+      "oldText": "                case \"mx\":\n                    return y.a.createElement(g[\"a\"], {\n                        color: \"#00A6A6\"\n                    }, t)\n",
+      "newText": ""
+    },
+    {
+      "startLine": 106885,
+      "oldText": "                case \"mx\":\n                    return \"serverMx/\".concat(t);\n",
+      "newText": ""
+    },
+    {
+      "startLine": 106957,
+      "oldText": "                    }), \" \\u7f16\\u8f91\")), \"mx\" === e.type && y.a.createElement(mV2node, {\n                        key: e.id,\n                        record: Object.assign({\n                            protocol: \"mx\"\n                        }, e),\n                        mxOnly: !0\n                    }, y.a.createElement(\"a\", null, y.a.createElement(m[\"a\"], {\n                        type: \"edit\"\n",
+      "newText": ""
+    },
+    {
+      "startLine": 106991,
+      "oldText": "                    filters: [\"V2node\", \"Shadowsocks\", \"Vmess\", \"Trojan\", \"Hysteria\", \"Tuic\", \"Vless\", \"AnyTLS\", \"Mx\"].map(e=>({\n",
+      "newText": "                    filters: [\"V2node\", \"Shadowsocks\", \"Vmess\", \"Trojan\", \"Hysteria\", \"Tuic\", \"Vless\", \"AnyTLS\"].map(e=>({\n"
+    },
+    {
+      "startLine": 107146,
+      "oldText": "                    }, y.a.createElement(\"a\", null, this.getTypeTag(\"anytls\", \"AnyTLS\")))), y.a.createElement(p[\"a\"].Item, null, y.a.createElement(mV2node, {\n                        key: \"create-mx-\" + this.state.createSequence,\n                        record: {\n                            protocol: \"mx\",\n                            tls: 1,\n                            rate: 1,\n                            network: \"tcp\",\n                            disable_sni: 0,\n                            zero_rtt_handshake: 0,\n                            flow: null\n                        },\n                        mxOnly: !0\n                    }, y.a.createElement(\"a\", null, this.getTypeTag(\"mx\", \"Mundo X\")))))\n",
+      "newText": "                    }, y.a.createElement(\"a\", null, this.getTypeTag(\"anytls\", \"AnyTLS\")))))\n"
+    },
+    {
+      "startLine": 107309,
+      "oldText": "                }, y.a.createElement(\"a\", null, y.a.createElement(m[\"a\"], {\n                    type: \"form\"\n                }), \" \\u7f16\\u8f91\")), \"mx\" === (null === (r = this.record) || void 0 === r ? void 0 : r.type) && y.a.createElement(mV2node, {\n                    key: Math.random(),\n                    record: Object.assign({\n                        protocol: \"mx\"\n                    }, this.record),\n                    mxOnly: !0\n",
+      "newText": ""
+    },
+    {
+      "startLine": 112207,
+      "oldText": "                namespace: \"serverMx\"\n            }, n(\"callMx\").default)),\n            u.model(i()({\n",
+      "newText": ""
+    },
+    {
+      "startLine": 113767,
+      "oldText": "                        }, null, 4),\n                        mundordp: JSON.stringify({\n                            username: \"MundoUser\",\n                            certificateFingerprint: \"\",\n                            fakeTitle: \"\",\n                            fakeMessage: \"\",\n                            acceptProxyProtocol: false,\n                            useTLSCertificate: false\n",
+      "newText": ""
+    },
+    {
+      "startLine": 113942,
+      "oldText": "                }, \"gRPC\"), f.a.createElement(s[\"a\"].Option, {\n                    value: \"mundordp\"\n                }, \"Mundo RDP\")))), f.a.createElement(\"div\", {\n",
+      "newText": "                }, \"gRPC\")))), f.a.createElement(\"div\", {\n"
+    }
+  ]
+}

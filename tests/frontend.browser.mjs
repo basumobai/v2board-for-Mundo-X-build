@@ -6,10 +6,15 @@ import { readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve, extname, join } from 'node:path';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
+import { xiaoApiRoutes, validateXiaoV2node, decodePhpForm } from './xiao-contract.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH || 'playwright');
 const root = resolve(process.env.UI_PROJECT_ROOT || '.');
 const output = resolve(process.env.UI_OUTPUT_DIR || 'test-results/ui');
+const xiao = process.env.UI_VARIANT === 'xiao';
+const securePath = xiao ? 'xiao-custom-admin' : 'admin';
+const allowedXiaoApis = xiaoApiRoutes(securePath);
+const contractViolations = [];
 mkdirSync(output, { recursive: true });
 const users = Array.from({ length: 8 }, (_, i) => ({
   commission_type: 0, commission_rate: null, discount: null, speed_limit: null, device_limit: null, is_staff: 0, group_id: 1, id: i + 1, email: `student-${i + 1}@example.test`, is_admin: 1, ban: 0,
@@ -29,13 +34,14 @@ function html(kind, url) {
   const user = kind === 'user';
   const color = url.searchParams.get('color') || 'default';
   const version = createHash('sha256').update(readFileSync(join(root, user ? 'public/theme/default/assets/custom.css' : 'public/assets/admin/custom.css'))).digest('hex').slice(0, 20);
-  const values = { title: 'Mundo 测试面板', theme: 'default', version: 'fixture', admin_ui_version: version,
+  const values = { title: xiao ? 'Xiao 测试面板' : 'Mundo 测试面板', theme: 'default', version: 'fixture', admin_ui_version: version,
+    admin_bundle_version: createHash('sha256').update(readFileSync(join(root, user ? 'public/theme/default/assets/umi.js' : 'public/assets/admin/umi.js'))).digest('hex').slice(0,20),
     frontend_ui_version: version, theme_sidebar: url.searchParams.get('sidebar') || 'light',
     theme_header: url.searchParams.get('header') || 'light', theme_color: color,
-    background_url: '', logo: '', secure_path: 'admin', description: '隔离渲染测试',
+    background_url: '', logo: '', secure_path: securePath, description: '隔离渲染测试',
   };
   let template = readFileSync(join(root, user ? 'public/theme/default/dashboard.blade.php' : 'resources/views/admin.blade.php'), 'utf8');
-  template = template.replace(/@php \(\$colors = \[[\s\S]*?\]\)/g, '')
+  template = template.replace(/@php[\s\S]*?@endphp/g, '').replace(/@php \(\$colors = \[[\s\S]*?\]\)/g, '')
     .replace(/@if[^\n]*\n/g, '').replace(/@endif/g, '')
     .replace(/\{!![^}]*!!\}/g, '')
     .replace(/\{\{\$theme_config\['([^']+)'\]\}\}/g, (_, key) => values[key] || '')
@@ -53,6 +59,12 @@ const server = createServer(async (req, res) => {
   }
   if (url.pathname.startsWith('/api/')) {
     requests.push(url.pathname);
+    if (xiao && !allowedXiaoApis.has(`${req.method} ${url.pathname}`)) {
+      contractViolations.push(`${req.method} ${url.pathname}`);
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: 'Xiao does not register this API' }));
+      return;
+    }
     if (url.pathname.endsWith('/user/info') && !req.headers.authorization) {
       res.statusCode=403;
       res.setHeader('Content-Type','application/json');
@@ -80,14 +92,31 @@ const server = createServer(async (req, res) => {
     else if (url.pathname.endsWith('/group/fetch')) data = [{ id: 1, name: '测试组' }];
     else if (url.pathname.endsWith('/plan/fetch')) data = [{ id: 1, name: '测试订阅', transfer_enable: 100, month_price: 2000 }];
     else if (url.pathname.endsWith('/getOverride')) data = { month_income: 12345, day_income: 1200, order_count: 5, register_count: 20 };
-    else if (url.pathname.endsWith('/config/fetch')) data = {site:{currency:'CNY'}};
+    else if (url.pathname.endsWith('/config/fetch')) {
+      const config = {site:{currency:'CNY',currency_symbol:'¥',app_name:'Xiao 测试面板'},subscribe:{},invite:{},frontend:{frontend_theme:'default',frontend_theme_header:'light',frontend_theme_sidebar:'light',frontend_theme_color:'default'},server:{},email:{},telegram:{},app:{},ticket:{},deposit:{}};
+      data = config[url.searchParams.get('key')] || config;
+    }
+    else if (url.pathname.endsWith('/getQueueStats')) data = {failedJobs:0,jobsPerMinute:0,pausedMasters:0,periods:{failedJobs:10080,recentJobs:60},processes:1,queueWithMaxRuntime:null,queueWithMaxThroughput:null,recentJobs:0,status:true,wait:[]};
+    else if (url.pathname.endsWith('/getQueueWorkload')) data = [];
+    else if (url.pathname.endsWith('/getThemes')) data = {themes:{default:JSON.parse(readFileSync(new URL('./fixtures/xiao-admin/theme.json', import.meta.url),'utf8'))},active:'default'};
+    else if (url.pathname.endsWith('/getThemeConfig')) data = {theme_color:'default',theme_sidebar:'light',theme_header:'dark',background_url:''};
     else if (url.pathname.endsWith('/comm/config')) data = { is_telegram: 0, invite_commission: 10, currency: 'CNY', currency_symbol: '¥', deposit_bounus: [] };
     else if (url.pathname.endsWith('/getSubscribe')) data = { ...users[0], subscribe_url: 'https://example.test/sub', plan: { name: '测试订阅' } };
     else if (url.pathname.endsWith('/getStat')) data = [0, 0, 0];
     else if (url.pathname.endsWith('/server/fetch')) data = nodes;
     else if (url.pathname.endsWith('/server/v2node/save')) {
       const body = (await Array.fromAsync(req)).map(chunk => chunk.toString()).join('');
-      const name = req.headers['content-type']?.includes('json') ? JSON.parse(body).name : new URLSearchParams(body).get('name');
+      const params = req.headers['content-type']?.includes('json') ? JSON.parse(body) : decodePhpForm(body);
+      const name = params.name;
+      if (xiao) {
+        const problems = validateXiaoV2node(params);
+        if (problems.length) {
+          contractViolations.push(...problems);
+          res.writeHead(422, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({message:problems.join('; ')}));
+          return;
+        }
+      }
       if (!name) { res.statusCode = 422; res.end(JSON.stringify({code: 422, message: 'Name required'})); return; }
       nodes = [...nodes, { ...nodes[0], id: nodes.length + 1, name, type: 'v2node' }];
       data = true;
@@ -119,6 +148,9 @@ try {
     const page = await context.newPage();
     page.setDefaultTimeout(10000);
     const errors = []; page.on('pageerror', e => errors.push(e.message));
+    const consoleErrors = []; page.on('console', message => {
+      if (message.type() === 'error') consoleErrors.push(message.text());
+    });
     await page.goto(`${origin}/admin#main-container`);
     await page.locator('.v2board-auth-box input[type=password]').waitFor();
     await page.screenshot({ path: join(output, `admin-login-${width}.png`) });
@@ -208,6 +240,10 @@ try {
         const addNode = page.getByRole('button', {name:'新增节点'});
         const nodeDrawer = page.locator('.ant-drawer-open');
         await addNode.click();
+        if (xiao) {
+          const choices = await page.locator('.ant-dropdown-menu:visible').innerText();
+          assert.doesNotMatch(choices, /Mundo|\bMx\b/i, 'Xiao exposes a Mundo-only node');
+        }
         await page.locator('.ant-dropdown-menu:visible').getByText('V2node', {exact:true}).click();
         await nodeDrawer.locator('.ant-drawer-content').waitFor();
         await nodeDrawer.getByPlaceholder('请输入节点名称').fill('取消的草稿');
@@ -227,6 +263,7 @@ try {
         await nodeDrawer.getByPlaceholder('用户连接端口').fill('443');
         await nodeDrawer.getByPlaceholder('服务端开放端口').fill('443');
         await nodeDrawer.locator('.form-group').filter({has:page.locator('label').getByText('节点协议',{exact:true})}).locator('.ant-select-selection').click();
+        if (xiao) assert.doesNotMatch(await page.locator('.ant-select-dropdown:visible').innerText(), /Mundo|\bMx\b/i);
         await page.locator('.ant-select-dropdown:visible').getByText('VMess',{exact:true}).click();
         await nodeDrawer.locator('.form-group').filter({has:page.locator('label').filter({hasText:'权限组'})}).first().locator('.ant-select-selection').click();
         await page.locator('.ant-select-dropdown:visible').getByText('测试组',{exact:true}).click();
@@ -244,7 +281,7 @@ try {
         await staleResponse;
         await page.waitForLoadState('networkidle');
         assert.ok(await page.getByText(`新增测试节点-${width}`).first().isVisible(), 'An older list response replaced the saved node');
-        await page.route('**/api/v1/admin/server/manage/getNodes?*',route=>route.abort('failed'),{times:1});
+        await page.route(`**/api/v1/${securePath}/server/manage/getNodes?*`,route=>route.abort('failed'),{times:1});
         await page.getByRole('button', {name:'刷新节点'}).click();
         await page.getByText('节点列表刷新失败',{exact:true}).waitFor();
         await page.getByRole('button', {name:'刷新节点'}).waitFor({state:'visible'});
@@ -268,6 +305,28 @@ try {
           console.log('Node failure state:',await page.locator('body').innerText());
           await page.screenshot({path:join(output,`admin-node-failure-${width}.png`)});
           releaseNodeFetch?.();
+          throw error;
+        }
+      }
+    }
+    if (xiao) {
+      const titles = {plan:'订阅管理',order:'订单管理',ticket:'工单管理',coupon:'优惠券管理',giftcard:'礼品卡管理',knowledge:'知识库管理',notice:'公告管理','server/group':'权限组管理','server/route':'路由管理','config/system':'系统配置','config/payment':'支付配置','config/theme':'主题配置',queue:'队列监控'};
+      for (const route of ['plan','order','ticket','coupon','giftcard','knowledge','notice','server/group','server/route','config/system','config/payment','config/theme','queue']) {
+        try {
+          await page.goto(`${origin}/admin#/${route}`);
+          await page.locator('#page-header').getByText(titles[route], {exact:true}).waitFor();
+          await page.locator('#main-container').waitFor();
+          await page.waitForLoadState('networkidle');
+          await page.waitForTimeout(250);
+          assert.deepEqual(consoleErrors.filter(message => /^(TypeError|ReferenceError|uncaught at|Error: Minified)/.test(message)), [], `Xiao ${route} caught a React rendering error`);
+          assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Xiao ${route} overflows at ${width}`);
+          await page.screenshot({path:join(output,`xiao-${route.replace('/','-')}-${width}.png`)});
+        } catch (error) {
+          console.log(`Xiao ${route}/${width} failed; errors: ${JSON.stringify(errors)}; APIs: ${JSON.stringify(requests)}; contract: ${JSON.stringify(contractViolations)}`);
+          console.log('Console errors:', consoleErrors);
+          console.log('Page state:', await page.evaluate(() => ({url:location.href,root:document.getElementById('root')?.innerHTML.slice(0,800),appKeys:Object.keys(window.g_app || {}),storeKeys:Object.keys(window.g_app?._store?.getState() || {})})));
+          console.log(await page.locator('body').innerText());
+          await page.screenshot({path:join(output,`xiao-${route.replace('/','-')}-failure-${width}.png`)});
           throw error;
         }
       }
@@ -324,6 +383,7 @@ try {
     await page.waitForFunction(() => Boolean(document.querySelector('style.darkreader')));
     console.log(`Admin ${width}px rendered; page errors: ${JSON.stringify(errors)}; APIs: ${[...new Set(requests)].join(', ')}`);
     assert.deepEqual(errors, []);
+    assert.deepEqual(contractViolations, [], 'The adapted admin used an unsupported Xiao API or node parameter');
     await context.close();
   }  if (existsSync(join(root, 'public/theme/default/assets/custom.css'))) {
     for (const width of [1440, 390]) {

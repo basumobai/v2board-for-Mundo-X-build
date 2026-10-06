@@ -1,0 +1,53 @@
+name: Xiao admin
+
+on:
+  pull_request:
+    paths:
+      - 'variants/xiao-admin/**'
+      - 'scripts/build-xiao-admin.mjs'
+      - 'tests/xiao-*'
+      - 'tests/fixtures/xiao-admin/**'
+      - 'tests/frontend.browser.mjs'
+      - 'public/assets/admin/**'
+      - '.github/workflows/xiao-admin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  xiao-admin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate package and Xiao API contract
+        run: node --test tests/xiao-admin.test.mjs
+      - name: Build the standalone admin package
+        run: node scripts/build-xiao-admin.mjs
+      - name: Install browser tooling
+        timeout-minutes: 5
+        run: |
+          npm install --no-save --fetch-retries=1 --fetch-timeout=60000 playwright@1.62.1
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+      - name: Render Xiao admin against its strict API contract
+        env:
+          UI_VARIANT: xiao
+          UI_PROJECT_ROOT: test-results/xiao-admin
+          UI_OUTPUT_DIR: test-results/xiao-ui
+        run: node tests/frontend.browser.mjs
+      - name: Archive the tested standalone package
+        run: tar -C test-results -czf test-results/xiao-admin.tar.gz xiao-admin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xiao-admin-package
+          path: test-results/xiao-admin.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xiao-admin-screenshots
+          path: test-results/xiao-ui
