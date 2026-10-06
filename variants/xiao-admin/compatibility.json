@@ -1,0 +1,20 @@
+{
+  "targetRepository": "wyx2685/v2board",
+  "targetCommit": "70371f756b392dc17ff8bb9105591b34d62deeb3",
+  "sourceCommit": "821ab8d61050178a632963642c8a544347e11553",
+  "adminRouteSha256": "7e3f72b0a6b57ebba85b44c5562adc648cf8ffc952929807046a71491abd6f18",
+  "v2nodeValidation": {
+    "protocol": "required|in:shadowsocks,vmess,vless,trojan,tuic,hysteria2,anytls",
+    "network": "required|in:tcp,ws,grpc,http,httpupgrade,xhttp",
+    "tls": "required|in:0,1,2",
+    "disable_sni": "required|in:0,1",
+    "zero_rtt_handshake": "required|in:0,1"
+  },
+  "excluded": [
+    "mx",
+    "mc1",
+    "mundordp"
+  ],
+  "assetSource": "public/assets/admin",
+  "bundleSourceSha256": "2bbf8faecbfed7b2bda9c6f9b0d5a7f2cf39842bcda4f51c3a55001e427cf955"
+}
