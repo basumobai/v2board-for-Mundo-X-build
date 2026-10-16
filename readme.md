@@ -79,3 +79,30 @@ COMPOSE_PROJECT_NAME=panel-b WEB_PORT=6601 GATEWAY_PORT=7002 bash init.sh
 ## 反馈
 
 提交 Issue 时请提供可复现步骤、相关容器状态和已经打码的日志。不要公开密码、JWT、订阅令牌或节点通信密钥。
+
+## 私有仓库：服务器拉取与更新
+
+仓库转为 Private 后，匿名 HTTPS `git clone` / `git pull` 无法继续使用。推荐给每台服务器配置**每仓库独立的只读 SSH Deploy Key**，不需要把 PAT 放进 README、Git URL 或环境配置。
+
+1. 在需要访问此项目的服务器上用 root 运行：
+
+```bash
+ssh-keygen -t ed25519 -f /root/.ssh/github_v2board -N '' -C 'v2board-for-Mundo-X-build-deploy-readonly'
+cat /root/.ssh/github_v2board.pub
+```
+
+2. 把输出的**公钥**加入对应私有仓库 `Settings → Deploy keys → Add deploy key`，不要勾选 `Allow write access`。私钥只保存在服务器（推荐权限 `0600`），不要复制到 GitHub 或公开文档。
+
+3. 克隆并设置此项目专用的 SSH 身份：
+
+```bash
+GIT_SSH_COMMAND='ssh -i /root/.ssh/github_v2board -o IdentitiesOnly=yes' \
+  git clone git@github.com:basumobai/v2board-for-Mundo-X-build.git
+cd v2board-for-Mundo-X-build
+git config core.sshCommand 'ssh -i /root/.ssh/github_v2board -o IdentitiesOnly=yes'
+git fetch origin
+```
+
+已有 Git 工作树可先备份，再用 `git remote set-url origin git@github.com:basumobai/仓库名.git` 修改 origin，并设置上述 `core.sshCommand`。之后 `git pull` / `git fetch` 会自动使用只读 Deploy Key；GitHub SSH 主机指纹应按官方文档校验。部署密钥与应用内部的 API Key、节点 Token 是两种不同的凭证。
+
+**Fork 迁移提醒：** 本仓库当前仍是公开 Fork。方案 B 的正确顺序为：先建立独立的 Private 仓库，完整镜像推送代码及分支、Tag；核验新仓库后将生产目录的 `origin` 改成实际新仓库地址。上方克隆地址只有在该原仓库本身可设为 Private 的情况下才适用；对于独立副本，请替换为新仓库名。`update.sh` 本身通过 `git fetch origin` 获取更新，只要部署密钥配置好即可继续工作。**不要在迁移前删除原 Fork，也不要在生产目录执行镜像覆盖命令。**
