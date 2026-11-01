@@ -11,6 +11,8 @@ use App\Payments\EPayQrcode;
 use App\Payments\Epusdt;
 use App\Payments\Paytaro;
 use App\Payments\AlipayF2F;
+use App\Http\Controllers\V1\Admin\PaymentController as AdminPaymentController;
+use Illuminate\Http\Request;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Support\PaymentCallback;
@@ -44,6 +46,19 @@ class PaymentSecurityTest extends TestCase
                 $this->assertSame(404, $error->getStatusCode());
             }
         }
+    }
+
+    public function testChangingGatewayInAdminEditorShowsAnEmptyForm(): void
+    {
+        $payment = $this->payment();
+        $controller = new AdminPaymentController();
+        $request = Request::create('/', 'POST', ['payment' => 'EPay', 'id' => $payment->id]);
+        $form = json_decode($controller->getPaymentForm($request)->getContent(), true)['data'];
+        $this->assertArrayHasKey('key', $form);
+        $this->assertArrayNotHasKey('value', $form['key']);
+        $request = Request::create('/', 'POST', ['payment' => 'Paytaro', 'id' => $payment->id]);
+        $form = json_decode($controller->getPaymentForm($request)->getContent(), true)['data'];
+        $this->assertSame('secret', $form['key']['value']);
     }
 
     public function testEmptySecretsAndNestedSignaturePayloadsAreRejected(): void
