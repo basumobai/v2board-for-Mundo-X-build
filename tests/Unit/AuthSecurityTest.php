@@ -77,6 +77,28 @@ class AuthSecurityTest extends TestCase
         }
     }
 
+    public function testLiveRoleAndBanChecksIgnorePreviouslyCachedPrivileges(): void
+    {
+        $user = User::create(['is_admin' => 1]);
+        $auth = (new AuthService($user))->generateAuthData(Request::create('/'))['auth_data'];
+        $this->assertSame(1, (int) AuthService::decryptAuthData($auth)['is_admin']);
+        // Bulk SQL bypasses model events, so the live check itself is required.
+        User::whereKey($user->id)->update(['is_admin' => 0]);
+        $this->assertSame(0, (int) AuthService::decryptAuthData($auth)['is_admin']);
+        User::whereKey($user->id)->update(['banned' => 1]);
+        $this->assertFalse(AuthService::decryptAuthData($auth));
+    }
+
+    public function testPasswordChangeRevokesExistingSessions(): void
+    {
+        $user = User::create(['password' => 'old-hash']);
+        $auth = (new AuthService($user))->generateAuthData(Request::create('/'))['auth_data'];
+        $this->assertIsArray(AuthService::decryptAuthData($auth));
+        $user->password = 'new-hash';
+        $user->save();
+        $this->assertFalse(AuthService::decryptAuthData($auth));
+    }
+
     public function testRemovingAllSessionsRejectsAllCachedTokens(): void
     {
         $user = User::create([]);

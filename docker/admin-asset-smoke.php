@@ -89,7 +89,7 @@ function assetVersion(string $url): string
     return $version;
 }
 
-$gatewayPort = (int) (getenv('GATEWAY_PORT') ?: 7001);
+$gatewayPort = (int) (getenv('GATEWAY_HEALTH_PORT') ?: getenv('GATEWAY_PORT') ?: 7001);
 if ($gatewayPort < 1 || $gatewayPort > 65535) {
     failSmoke('invalid GATEWAY_PORT');
 }
@@ -102,7 +102,8 @@ if ($securePath === '') {
     failSmoke('admin secure path is empty');
 }
 
-$baseUrl = "http://127.0.0.1:{$gatewayPort}";
+$gatewayHost = getenv('GATEWAY_HOST') ?: '127.0.0.1';
+$baseUrl = "http://{$gatewayHost}:{$gatewayPort}";
 $admin = requestUrl("{$baseUrl}/{$securePath}", [], true);
 if ($admin['status'] !== 200 || $admin['body'] === '') {
     failSmoke("admin shell returned HTTP {$admin['status']}");

@@ -17,7 +17,10 @@ define('isWEBMAN', true);
 
 Adapterman::init();
 
-$http_worker                = new Worker('http://127.0.0.1:' . $settings['WEB_PORT']);
+Worker::$pidFile = __DIR__ . '/storage/framework/workerman.pid';
+Worker::$logFile = __DIR__ . '/storage/logs/workerman.log';
+Worker::$stdoutFile = __DIR__ . '/storage/logs/workerman-stdout.log';
+$http_worker                = new Worker('http://' . DeploymentSettings::bindAddress() . ':' . $settings['WEB_PORT']);
 $http_worker->count         = $settings['WEB_WORKERS'];
 $http_worker->name          = 'AdapterMan';
 

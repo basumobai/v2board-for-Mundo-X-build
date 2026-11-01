@@ -114,7 +114,7 @@ class RuntimeConfigService
     private function writeArrayFile(string $path, array $config): void
     {
         $directory = dirname($path);
-        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+        if (!is_dir($directory) && !mkdir($directory, 0770, true) && !is_dir($directory)) {
             throw new RuntimeException("Unable to create configuration directory: {$directory}");
         }
 
@@ -131,7 +131,7 @@ class RuntimeConfigService
             }
 
             $existingPermissions = is_file($path) ? @fileperms($path) : false;
-            $permissions = $existingPermissions === false ? 0664 : ($existingPermissions & 0777);
+            $permissions = $existingPermissions === false ? 0640 : ($existingPermissions & 0660);
             @chmod($temporaryPath, $permissions);
 
             if (!rename($temporaryPath, $path)) {

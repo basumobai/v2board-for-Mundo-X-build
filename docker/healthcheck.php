@@ -1,8 +1,10 @@
 <?php
 
 // Deliberately avoids booting a second Laravel application for each probe.
-$port = getenv(($argv[1] ?? 'web') === 'gateway' ? 'GATEWAY_PORT' : 'WEB_PORT') ?: 6600;
-$socket = @fsockopen('127.0.0.1', (int)$port, $code, $message, 2);
+$gateway = ($argv[1] ?? 'web') === 'gateway';
+$port = $gateway ? (getenv('GATEWAY_HEALTH_PORT') ?: getenv('GATEWAY_PORT') ?: 7001) : (getenv('WEB_PORT') ?: 6600);
+$host = $gateway ? (getenv('GATEWAY_HOST') ?: '127.0.0.1') : '127.0.0.1';
+$socket = @fsockopen($host, (int)$port, $code, $message, 2);
 if (!$socket) {
     exit(1);
 }

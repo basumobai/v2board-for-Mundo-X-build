@@ -35,7 +35,9 @@ final class TrustedOrigins
     {
         if (self::allows($origin)) return self::origin($origin);
         foreach ([config('security.frontend_url'), config('v2board.app_url'), config('app.url')] as $url) {
-            if (self::origin($url) !== null) return rtrim($url, '/');
+            if (($base = self::origin($url)) !== null) {
+                return $base . rtrim(parse_url($url, PHP_URL_PATH) ?? '', '/');
+            }
         }
         throw new \RuntimeException('A trusted application URL is required');
     }

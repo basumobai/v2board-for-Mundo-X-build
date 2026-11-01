@@ -25,3 +25,4 @@ workerman.webman.php.pid
 workerman.log
 
 /test-results/
+/storage/framework/phpunit/

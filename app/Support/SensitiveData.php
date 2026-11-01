@@ -12,7 +12,7 @@ final class SensitiveData
         if (!is_array($value)) return $value;
         $result = [];
         foreach ($value as $key => $item) {
-            $sensitive = preg_match('/password|passwd|pwd|token|secret|authorization|cookie|signature|private.?key|api.?key|auth_data|session/i', (string) $key);
+            $sensitive = preg_match('/password|passwd|pwd|token|secret|authorization|cookie|signature|private.?key|api.?key|auth_data|session|(?:^|_)key$|(?:^|_)sign$/i', (string) $key);
             $result[$key] = $sensitive ? '[REDACTED]' : self::redact($item, $depth + 1);
         }
         return $result;

@@ -122,5 +122,13 @@ services:
       - ./:/www
     environment: *v2board-environment
 
+  backup:
+    <<: *v2board-image
+    profiles: ["tools"]
+    network_mode: none
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    volumes: [redis-data:/data:ro]
+
 volumes:
   redis-data:

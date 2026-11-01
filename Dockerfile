@@ -3,7 +3,7 @@ FROM php:8.4.27-cli-bookworm
 # Fail the build if a stale or substituted base image is used.
 RUN php -r 'if (PHP_MAJOR_VERSION !== 8 || PHP_MINOR_VERSION !== 4 || PHP_VERSION_ID < 80427) { fwrite(STDERR, "PHP security baseline not met\n"); exit(1); }'
 
-ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_ROOT_VERSION=dev-master
 
 RUN apt-get update \
     && apt-get upgrade -y \
@@ -31,7 +31,7 @@ RUN apt-get update \
         posix \
         sockets \
         zip \
-    && pecl install igbinary redis \
+    && pecl install igbinary-3.2.17RC1 redis-6.3.0 \
     && docker-php-ext-enable igbinary redis \
     && rm -rf /tmp/pear /var/lib/apt/lists/*
 

@@ -49,7 +49,7 @@ code_switched=false
 on_exit() {
     local status=$?
     trap - EXIT
-    rm -f "$backup_dir/mysql-client.cnf" "$backup_dir/database-name"
+    rm -f "$backup_dir/mysql-client.cnf" "$backup_dir/database-name" "$backup_dir/docker-network"
     if (( status != 0 )); then
         printf '更新未完成，备份目录：%s\n' "$backup_dir" >&2
         if [[ $services_stopped == true && $code_switched == false ]]; then
@@ -90,10 +90,15 @@ docker compose run --rm -T --no-deps -v "$backup_dir:/backup" installer php -r '
     foreach ([PDO::MYSQL_ATTR_SSL_CA => "ssl-ca", PDO::MYSQL_ATTR_SSL_CERT => "ssl-cert", PDO::MYSQL_ATTR_SSL_KEY => "ssl-key"] as $attribute => $key) {
         if (!empty($db["options"][$attribute])) { $ini .= $key . "=" . $quote($db["options"][$attribute]) . "\n"; }
     }
+    $network = getenv("APP_DOCKER_NETWORK") ?: "host";
+    if (!preg_match("/\\A[a-zA-Z0-9_.-]+\\z/", $network)) { exit(1); }
     if (file_put_contents("/backup/mysql-client.cnf", $ini) === false ||
-        file_put_contents("/backup/database-name", $name) === false) { exit(1); }
+        file_put_contents("/backup/database-name", $name) === false ||
+        file_put_contents("/backup/docker-network", $network) === false) { exit(1); }
 ' </dev/null
 database=$(cat "$backup_dir/database-name")
+backup_network=host
+if [[ -s $backup_dir/docker-network ]]; then backup_network=$(cat "$backup_dir/docker-network"); fi
 docker compose up -d --wait --wait-timeout 120 redis
 # Stop producers before draining the two legacy queues. Reserved jobs are
 # included in RedisQueue::size; Horizon is stopped only after they complete.
@@ -116,17 +121,19 @@ docker compose stop horizon
 # A quiescent source/database/Redis snapshot is taken before any migration.
 tar --exclude=./.git --exclude=./vendor --exclude=./node_modules --exclude=./.install.lock \
     -czf "$backup_dir/project.tar.gz" -C "$project_dir" .
-docker run --rm --network host -v "$backup_dir:/backup:ro" -v "$project_dir:/www:ro" \
+docker run --rm --network "$backup_network" -v "$backup_dir:/backup:ro" -v "$project_dir:/www:ro" \
     --entrypoint mysqldump mysql:8.4 --defaults-extra-file=/backup/mysql-client.cnf \
     --single-transaction --quick --no-tablespaces --set-gtid-purged=OFF \
     --column-statistics=0 --routines --events --triggers --hex-blob \
     --databases -- "$database" > "$backup_dir/database.sql.partial"
 [[ -s "$backup_dir/database.sql.partial" ]] || fail '数据库备份为空。'
 mv "$backup_dir/database.sql.partial" "$backup_dir/database.sql"
-rm -f "$backup_dir/mysql-client.cnf" "$backup_dir/database-name"
+rm -f "$backup_dir/mysql-client.cnf" "$backup_dir/database-name" "$backup_dir/docker-network"
 docker compose exec -T redis redis-cli -s /data/redis.sock SAVE >/dev/null
 docker compose stop redis
-docker compose run --rm -T --no-deps -v "$backup_dir:/backup" web \
+backup_service=web
+if docker compose --profile tools config --services | grep -qx backup; then backup_service=backup; fi
+docker compose run --rm -T --no-deps -v "$backup_dir:/backup" "$backup_service" \
     tar --exclude=redis.sock -czf /backup/redis.tar.gz -C /data . </dev/null
 tar -tzf "$backup_dir/project.tar.gz" >/dev/null
 tar -tzf "$backup_dir/redis.tar.gz" >/dev/null

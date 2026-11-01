@@ -1,0 +1,11 @@
+name: Owned JavaScript and workflow security
+# CodeQL does not support PHP. PHPUnit, Composer audit and runtime probes cover
+# that separate surface; bundled third-party JavaScript is excluded here.
+paths:
+  - .github/workflows
+  - public/assets/admin/custom.js
+  - public/theme/default/assets/custom.js
+  - public/assets/widgets
+paths-ignore:
+  - '**/node_modules/**'
+  - vendor
