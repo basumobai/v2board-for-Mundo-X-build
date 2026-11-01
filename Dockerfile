@@ -1,4 +1,7 @@
-FROM php:8.2-cli-bookworm
+FROM php:8.2.35-cli-bookworm
+
+# Fail the build if a stale or substituted base image is used.
+RUN php -r 'if (PHP_VERSION_ID < 80235) { fwrite(STDERR, "PHP security baseline not met\n"); exit(1); }'
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
@@ -42,6 +45,7 @@ RUN printf '%s\n' \
     'display_errors=Off' \
     'display_startup_errors=Off' \
     'expose_php=Off' \
+    'session.upload_progress.enabled=0' \
     'log_errors=On' \
     'opcache.enable=1' \
     'opcache.enable_cli=1' \

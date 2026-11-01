@@ -12,6 +12,22 @@ permissions:
 jobs:
   php:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql-security:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: security-test-only
+          MYSQL_DATABASE: v2board_test_security
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -psecurity-test-only"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      SECURITY_MYSQL_DATABASE: v2board_test_security
+      SECURITY_MYSQL_HOST: 127.0.0.1
+      SECURITY_MYSQL_PASSWORD: security-test-only
     steps:
       - uses: actions/checkout@v4
 
@@ -68,6 +84,10 @@ jobs:
           }));
           if ($missing) {
               fwrite(STDERR, "Missing extensions: " . implode(", ", $missing) . PHP_EOL);
+              exit(1);
+          }
+          if (PHP_VERSION_ID < 80235 || ini_get("session.upload_progress.enabled") !== "0") {
+              fwrite(STDERR, "PHP security baseline not met" . PHP_EOL);
               exit(1);
           }
           if (ini_get("opcache.validate_timestamps") !== "1"

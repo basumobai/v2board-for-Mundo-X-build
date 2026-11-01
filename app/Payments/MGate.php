@@ -6,6 +6,7 @@
 namespace App\Payments;
 
 use \Curl\Curl;
+use App\Support\PaymentCallback;
 
 class MGate {
     private $config;
@@ -58,7 +59,8 @@ class MGate {
         $params['sign'] = md5($str);
         $curl = new Curl();
         $curl->setUserAgent('MGate');
-        $curl->setOpt(CURLOPT_SSL_VERIFYPEER, 0);
+        $curl->setOpt(CURLOPT_SSL_VERIFYPEER, true);
+        $curl->setOpt(CURLOPT_SSL_VERIFYHOST, 2);
         $curl->post($this->config['mgate_url'] . '/v1/gateway/fetch', http_build_query($params));
         $result = $curl->response;
         if (!$result) {
@@ -86,6 +88,9 @@ class MGate {
 
     public function notify($params)
     {
+        if (trim((string) ($this->config['mgate_app_secret'] ?? '')) === ''
+            || !PaymentCallback::isFlatPayload($params) || !is_string($params['sign'] ?? null)) return false;
+        if (empty($params['out_trade_no']) || empty($params['trade_no'])) return false;
         $sign = $params['sign'];
         unset($params['sign']);
         ksort($params);

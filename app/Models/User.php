@@ -9,6 +9,7 @@ class User extends Model
     protected $table = 'v2_user';
     protected $dateFormat = 'U';
     protected $guarded = ['id'];
+    protected $hidden = ['password', 'password_algo', 'password_salt', 'remember_token'];
     protected $casts = [
         'created_at' => 'timestamp',
         'updated_at' => 'timestamp'

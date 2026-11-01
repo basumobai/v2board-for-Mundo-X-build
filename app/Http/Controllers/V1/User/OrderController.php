@@ -227,12 +227,17 @@ class OrderController extends Controller
         $payment = Payment::find($method);
         if (!$payment || $payment->enable !== 1) abort(500, __('Payment method is not available'));
         $paymentService = new PaymentService($payment->payment, $payment->id);
-        $order->handling_amount = NULL;
-        if ($payment->handling_fee_fixed || $payment->handling_fee_percent) {
-            $order->handling_amount = round(($order->total_amount * ($payment->handling_fee_percent / 100)) + $payment->handling_fee_fixed);
-        }
-        $order->payment_id = $method;
-        if (!$order->save()) abort(500, __('Request failed, please try again later'));
+        $order = DB::transaction(function () use ($order, $payment) {
+            $locked = Order::where('id', $order->id)->lockForUpdate()->first();
+            if (!$locked || (int) $locked->status !== 0) abort(500, __('Order does not exist or has been paid'));
+            $locked->handling_amount = null;
+            if ($payment->handling_fee_fixed || $payment->handling_fee_percent) {
+                $locked->handling_amount = round(($locked->total_amount * ($payment->handling_fee_percent / 100)) + $payment->handling_fee_fixed);
+            }
+            $locked->payment_id = $payment->id;
+            if (!$locked->save()) abort(500, __('Request failed, please try again later'));
+            return $locked;
+        }, 3);
         $result = $paymentService->pay([
             'trade_no' => $tradeNo,
             'total_amount' => isset($order->handling_amount) ? ($order->total_amount + $order->handling_amount) : $order->total_amount,

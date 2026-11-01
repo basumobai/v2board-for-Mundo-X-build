@@ -7,6 +7,8 @@
 
 namespace App\Payments;
 
+use App\Support\PaymentCallback;
+
 class Paytaro
 {
     const GATEWAY_URL = 'https://v3.paytaro.com';
@@ -85,7 +87,8 @@ class Paytaro
 
     public function notify($params)
     {
-        if ($this->appId() === '' || $this->appSecret() === '' || empty($params['sign'])) {
+        if ($this->appId() === '' || $this->appSecret() === '' || !PaymentCallback::isFlatPayload($params)
+            || !is_string($params['sign'] ?? null) || $params['sign'] === '') {
             return false;
         }
         $receivedSign = strtolower((string) $params['sign']);
@@ -101,11 +104,17 @@ class Paytaro
         if (empty($params['out_trade_no']) || empty($params['trade_no'])) {
             return false;
         }
-        return [
+        $verified = [
             'trade_no' => $params['out_trade_no'],
             'callback_no' => $params['trade_no'],
             'custom_result' => 'success',
         ];
+        if (array_key_exists('money', $params)) {
+            $amount = PaymentCallback::amountMinor($params['money']);
+            if ($amount === null) return false;
+            $verified['amount_minor'] = $amount;
+        }
+        return $verified;
     }
 
     private function validateConfig()

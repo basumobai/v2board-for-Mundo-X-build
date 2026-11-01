@@ -14,14 +14,28 @@ class PaymentService
 
     public function __construct($method, $id = NULL, $uuid = NULL)
     {
+        if (!is_string($method) || !preg_match('/\A[A-Za-z][A-Za-z0-9_]*\z/', $method)) {
+            abort(400, 'invalid payment method');
+        }
         $this->method = $method;
         $this->class = '\\App\\Payments\\' . $this->method;
         if (!class_exists($this->class)) abort(500, 'gate is not found');
-        if ($id) $payment = Payment::find($id)->toArray();
-        if ($uuid) $payment = Payment::where('uuid', $uuid)->first()->toArray();
+        $payment = null;
+        if ($id !== null && $uuid !== null) abort(400, 'ambiguous payment selector');
+        if ($id !== null) {
+            if ((!is_int($id) && !is_string($id)) || !ctype_digit((string) $id) || (int) $id < 1) {
+                abort(400, 'invalid payment id');
+            }
+            $payment = Payment::where('id', $id)->where('payment', $method)->first();
+        }
+        if ($uuid !== null) {
+            if (!is_string($uuid) || trim($uuid) === '') abort(400, 'invalid payment uuid');
+            $payment = Payment::where('uuid', $uuid)->where('payment', $method)->first();
+        }
+        if (($id !== null || $uuid !== null) && !$payment) abort(404, 'payment is not found');
         $this->config = [];
         if (isset($payment)) {
-            $this->config = $payment['config'];
+            $this->config = is_array($payment['config']) ? $payment['config'] : [];
             $this->config['enable'] = $payment['enable'];
             $this->config['id'] = $payment['id'];
             $this->config['uuid'] = $payment['uuid'];
@@ -32,8 +46,13 @@ class PaymentService
 
     public function notify($params)
     {
-        if (!$this->config['enable']) abort(500, 'gate is not enable');
+        if (empty($this->config['enable'])) abort(500, 'gate is not enable');
         return $this->payment->notify($params);
+    }
+
+    public function getPaymentId(): int
+    {
+        return (int) ($this->config['id'] ?? 0);
     }
 
     public function pay($order)

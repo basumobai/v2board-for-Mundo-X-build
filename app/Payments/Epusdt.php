@@ -3,6 +3,7 @@
 namespace App\Payments;
 
 use \Curl\Curl;
+use App\Support\PaymentCallback;
 
 class Epusdt
 {
@@ -51,6 +52,7 @@ class Epusdt
 
     public function pay($order)
     {
+        if (trim((string) ($this->config['epusdt_token'] ?? '')) === '') abort(500, 'Epusdt 配置不完整');
         $network = strtolower(trim((string) ($this->config['epusdt_network'] ?? '')));
         $token = empty($this->config['epusdt_asset']) ? 'usdt' : strtolower(trim((string) $this->config['epusdt_asset']));
         $params = [
@@ -68,7 +70,8 @@ class Epusdt
 
         $curl = new Curl();
         $curl->setUserAgent('epusdt');
-        $curl->setOpt(CURLOPT_SSL_VERIFYPEER, 0);
+        $curl->setOpt(CURLOPT_SSL_VERIFYPEER, true);
+        $curl->setOpt(CURLOPT_SSL_VERIFYHOST, 2);
         $curl->setOpt(CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         $curl->post(
             rtrim((string) $this->config['epusdt_url'], '/') . '/payments/gmpay/v1/order/create-transaction',
@@ -97,7 +100,8 @@ class Epusdt
 
             $curl = new Curl();
             $curl->setUserAgent('epusdt');
-            $curl->setOpt(CURLOPT_SSL_VERIFYPEER, 0);
+            $curl->setOpt(CURLOPT_SSL_VERIFYPEER, true);
+            $curl->setOpt(CURLOPT_SSL_VERIFYHOST, 2);
             $curl->setOpt(CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
             $curl->post(
                 rtrim((string) $this->config['epusdt_url'], '/') . '/pay/switch-network',
@@ -126,26 +130,37 @@ class Epusdt
 
     public function notify($params)
     {
-        if (!isset($params['signature'])) {
+        $token = trim((string) ($this->config['epusdt_token'] ?? ''));
+        if ($token === '' || !PaymentCallback::isFlatPayload($params) || !is_string($params['signature'] ?? null)) {
             return false;
         }
 
         $signature = strtolower((string) $params['signature']);
         unset($params['signature']);
 
-        if (!hash_equals($this->makeSignature($params, trim((string) ($this->config['epusdt_token'] ?? ''))), $signature)) {
+        if (!hash_equals($this->makeSignature($params, $token), $signature)) {
             return false;
         }
 
         if (!isset($params['status']) || (int) $params['status'] !== 2) {
-            return 'failed';
+            return false;
         }
+        if (empty($params['order_id']) || empty($params['trade_id'])) return false;
+        if (isset($params['pid']) && (string) $params['pid'] !== trim((string) ($this->config['epusdt_pid'] ?? ''))) return false;
+        $currency = strtolower(trim((string) ($this->config['epusdt_currency'] ?? '')));
+        if (isset($params['currency']) && strtolower((string) $params['currency']) !== ($currency === '' ? 'cny' : $currency)) return false;
 
-        return [
+        $verified = [
             'trade_no' => $params['order_id'],
             'callback_no' => $params['trade_id'],
             'custom_result' => 'ok',
         ];
+        if (array_key_exists('amount', $params)) {
+            $amount = PaymentCallback::amountMinor($params['amount']);
+            if ($amount === null) return false;
+            $verified['amount_minor'] = $amount;
+        }
+        return $verified;
     }
 
     private function makeSignature($params, $token)
