@@ -2,8 +2,11 @@
 
 namespace App\Payments;
 
+use App\Support\PaymentCallback;
+use Illuminate\Support\Facades\Http;
 
 class BTCPay {
+    private $config;
     public function __construct($config) {
         $this->config = $config;
     }
@@ -61,15 +64,10 @@ class BTCPay {
     }
 
     public function notify($params) {
-        $payload = trim(request()->getContent() ?: json_encode($_POST));
-
-        $headers = getallheaders();
-
-        //IS Btcpay-Sig
-        //NOT BTCPay-Sig
-        //API doc is WRONG!
-        $headerName = 'Btcpay-Sig';
-        $signraturHeader = isset($headers[$headerName]) ? $headers[$headerName] : '';
+        if (!is_string($this->config['btcpay_webhook_key'] ?? null) || trim($this->config['btcpay_webhook_key']) === '') return false;
+        $payload = request()->getContent();
+        if (!is_string($payload) || $payload === '') return false;
+        $signraturHeader = (string) request()->header('BTCPay-Sig', '');
         $json_param = json_decode($payload, true);
 
         $computedSignature = "sha256=" . \hash_hmac('sha256', $payload, $this->config['btcpay_webhook_key']);
@@ -79,26 +77,30 @@ class BTCPay {
             return false;
         }
 
-        //get order id store in metadata
-        $context = stream_context_create(array(
-            'http' => array(
-                'method' => 'GET',
-                'header' => "Authorization:" . "token " . $this->config['btcpay_api_key'] . "\r\n"
-            )
-        ));
-
-        $invoiceDetail = file_get_contents($this->config['btcpay_url'] . 'api/v1/stores/' . $this->config['btcpay_storeId'] . '/invoices/' . $json_param['invoiceId'], false, $context);
-        $invoiceDetail = json_decode($invoiceDetail, true);
-
-    
-        $out_trade_no = $invoiceDetail['metadata']["orderId"];
-        $pay_trade_no=$json_param['invoiceId'];
+        if (!is_array($json_param)) return false;
+        if (($json_param['type'] ?? '') !== 'InvoiceSettled') return 'success';
+        $invoiceId = $json_param['invoiceId'] ?? null;
+        if (!is_string($invoiceId) || $invoiceId === '') return false;
+        // Reconcile the signed event against the configured store's invoice.
+        foreach (['btcpay_api_key', 'btcpay_storeId', 'btcpay_url'] as $field) {
+            if (!is_string($this->config[$field] ?? null) || trim($this->config[$field]) === '') return false;
+        }
+        $response = Http::timeout(15)->withToken($this->config['btcpay_api_key'], 'token')->acceptJson()->get(
+            rtrim($this->config['btcpay_url'], '/') . '/api/v1/stores/' . rawurlencode($this->config['btcpay_storeId']) . '/invoices/' . rawurlencode($invoiceId)
+        );
+        if (!$response->successful()) return false;
+        $invoiceDetail = $response->json();
+        if (!is_array($invoiceDetail) || ($invoiceDetail['status'] ?? '') !== 'Settled'
+            || !in_array($invoiceDetail['additionalStatus'] ?? '', ['None', 'PaidOver', 'PaidLate', 'Marked'], true)
+            || ($invoiceDetail['id'] ?? '') !== $invoiceId || ($invoiceDetail['currency'] ?? '') !== 'CNY') return false;
+        $out_trade_no = $invoiceDetail['metadata']['orderId'] ?? null;
+        $amount = PaymentCallback::amountMinor($invoiceDetail['amount'] ?? null);
+        if (!is_string($out_trade_no) || $out_trade_no === '' || $amount === null) return false;
         return [
             'trade_no' => $out_trade_no,
-            'callback_no' => $pay_trade_no
+            'callback_no' => $invoiceId,
+            'amount_minor' => $amount,
         ];
-        http_response_code(200);
-        return('success');
     }
 
 

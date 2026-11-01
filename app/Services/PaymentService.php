@@ -7,6 +7,19 @@ use App\Models\Payment;
 
 class PaymentService
 {
+    private const CALLBACK_KEYS = [
+        'AlipayF2F' => 'public_key',
+        'BEasyPaymentUSDT' => 'bepusdt_apitoken',
+        'BTCPay' => 'btcpay_webhook_key',
+        'CoinPayments' => 'coinpayments_ipn_secret',
+        'Coinbase' => 'coinbase_webhook_key',
+        'EPay' => 'key', 'EPayQrcode' => 'key', 'Epusdt' => 'epusdt_token',
+        'MGate' => 'mgate_app_secret', 'Paytaro' => 'key', 'PaytaroQR' => 'key',
+        'StripeALL' => 'stripe_webhook_key', 'StripeAlipay' => 'stripe_webhook_key',
+        'StripeCheckout' => 'stripe_webhook_key', 'StripeCredit' => 'stripe_webhook_key',
+        'StripeWepay' => 'stripe_webhook_key', 'WechatPayNative' => 'api_key',
+    ];
+
     public $method;
     protected $class;
     protected $config;
@@ -33,6 +46,7 @@ class PaymentService
             $payment = Payment::where('uuid', $uuid)->where('payment', $method)->first();
         }
         if (($id !== null || $uuid !== null) && !$payment) abort(404, 'payment is not found');
+        if ($payment && $payment['payment'] !== $method) abort(404, 'payment is not found');
         $this->config = [];
         if (isset($payment)) {
             $this->config = is_array($payment['config']) ? $payment['config'] : [];
@@ -47,6 +61,9 @@ class PaymentService
     public function notify($params)
     {
         if (empty($this->config['enable'])) abort(500, 'gate is not enable');
+        $adapter = (new \ReflectionClass($this->class))->getShortName();
+        $key = self::CALLBACK_KEYS[$adapter] ?? null;
+        if ($key !== null && (!is_string($this->config[$key] ?? null) || trim($this->config[$key]) === '')) return false;
         return $this->payment->notify($params);
     }
 

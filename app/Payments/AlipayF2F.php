@@ -5,7 +5,10 @@
  */
 namespace App\Payments;
 
+use App\Support\PaymentCallback;
+
 class AlipayF2F {
+    private $config;
     public function __construct($config)
     {
         $this->config = $config;
@@ -63,7 +66,10 @@ class AlipayF2F {
 
     public function notify($params)
     {
-        if ($params['trade_status'] !== 'TRADE_SUCCESS') return false;
+        if (!PaymentCallback::isFlatPayload($params) || !is_string($params['sign'] ?? null)
+            || (string) ($params['app_id'] ?? '') !== (string) ($this->config['app_id'] ?? '') || empty($params['app_id'])
+            || ($params['trade_status'] ?? '') !== 'TRADE_SUCCESS'
+            || empty($params['out_trade_no']) || empty($params['trade_no'])) return false;
         $gateway = new \Library\AlipayF2F();
         $gateway->setAppId($this->config['app_id']);
         $gateway->setPrivateKey($this->config['private_key']); // 可以是路径，也可以是密钥内容
@@ -73,10 +79,16 @@ class AlipayF2F {
                 /**
                  * Payment is successful
                  */
-                return [
+                $verified = [
                     'trade_no' => $params['out_trade_no'],
                     'callback_no' => $params['trade_no']
                 ];
+                if (array_key_exists('total_amount', $params)) {
+                    $amount = PaymentCallback::amountMinor($params['total_amount']);
+                    if ($amount === null) return false;
+                    $verified['amount_minor'] = $amount;
+                }
+                return $verified;
             } else {
                 /**
                  * Payment is not successful

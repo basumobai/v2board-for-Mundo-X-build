@@ -26,7 +26,12 @@
 - 保留 `OrderService::open()` 原有的订单及用户行锁、事务重试、流量重置边界和开通幂等机制。
 - Epusdt 拒绝空密钥、嵌套参数和未成功状态；校验签名覆盖的商户及币种信息（如有）。
   Paytaro 保留本地原有空密钥防护，并补充参数与金额检查；EPay、EPayQrcode、MGate 补充空密钥保护。
-- 恢复 Epusdt 两条出站请求及 MGate 的 TLS 证书、主机名验证，没有新增“跳过验证”选项。
+- 在统一回调入口阻止全部内置网关使用空认证密钥；Coinbase 仅在 `charge:confirmed` 后结算，
+  BTCPay 必须收到 `InvoiceSettled` 并从已配置商店复查发票的状态、金额及币种。创建或处理中的事件不入账。
+  Coinbase 的旧版人工 resolved 事件需要人工核验，未自动开通；本批未迁移到新的 Coinbase Business API。
+- Coinbase、BTCPay、CoinPayments 对原始请求字节验签，并使用大小写不敏感的请求头读取，避免重编码导致验签错误。
+  CoinPayments 校验商户、币种和原币金额；支付宝及微信补充应用/商户及可用金额的绑定。
+- 恢复 Epusdt 两条出站请求、MGate 及 BEasyPaymentUSDT 的 TLS 证书、主机名验证，没有新增“跳过验证”选项。
 - 明确采用 `php:8.2.35-cli-bookworm`，构建时验证 PHP 下限；镜像默认配置和 CLI 配置均关闭
   `session.upload_progress.enabled`。该标签仍需在构建后记录实际 digest，并扫描镜像内 OS 包。
 - 增加认证、支付回调、会话撤销回归测试，以及真实 MySQL / InnoDB、多进程并发结算测试。
@@ -102,11 +107,13 @@ PHP 8.2 的修复版本为 8.2.35，8.4 的修复版本为 8.4.27；8.2 于 2026
 ## 验证记录
 
 - 本地已完成锁文件依赖安装和 PHP 源码语法检查。
-- 无 MySQL 环境时的 PHPUnit：75 项，551 条断言；73 项通过，2 项真实 MySQL 并发测试按条件跳过。
+- 无 MySQL 环境时的 PHPUnit：80 项；78 项通过，2 项真实 MySQL 并发测试按条件跳过。
 - Node 安装、更新、支付和 TLS 资源检查：27 项全部通过。
 - 本地测试 PHP 为隔离的 Ubuntu PHP 8.3.6 发行版包，仅运行合成测试数据；不是生产版本证明。
 - 当前执行器不允许 MySQL 创建 Unix Socket，本地无法启动真实 MySQL 服务；并发验收由新增 CI
-  MySQL 作业执行。没有以 SQLite 测试代替真实行锁证明。
+  MySQL 作业执行。首个提交的 CI 已通过真实 MySQL 8.4 的全部 75 项测试（557 条断言），
+  并通过容器、双实例安装、前端和 Compose 作业；支付插件扩展修复后的最新提交仍需以最新 CI 为准。
+  没有以 SQLite 测试代替真实行锁证明。
 - Docker 构建、容器扩展、多实例安装恢复和浏览器作业结果以本 PR 最新 CI 为准；未运行的检查不得标记通过。
 
 ## 发布与回滚操作要求
@@ -131,4 +138,6 @@ PHP 8.2 的修复版本为 8.2.35，8.4 的修复版本为 8.4.27；8.2 于 2026
 - [Laravel 13 支持周期](https://laravel.com/docs/13.x/releases)
 - [Laravel TokenGuard 公告](https://github.com/laravel/framework/security/advisories/GHSA-f9x3-7vq9-cph6)
 - [Laravel 调试页 XSS 公告](https://github.com/laravel/framework/security/advisories/GHSA-jh5r-qr3c-85q8)
+- [BTCPay 发票结算及回调](https://docs.btcpayserver.org/Development/ecommerce-integration-guide/)
+- [CoinPayments 官方 IPN 示例](https://www.coinpayments.net/downloads/cpipn.phps)
 - 其他公告的原始来源与版本范围见审计 JSON，实际升级时重新查询。

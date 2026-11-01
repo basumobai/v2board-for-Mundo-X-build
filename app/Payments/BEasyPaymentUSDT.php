@@ -3,8 +3,10 @@
 namespace App\Payments;
 
 use \Curl\Curl;
+use App\Support\PaymentCallback;
 
 class BEasyPaymentUSDT {
+    private $config;
     public function __construct($config)
     {
         $this->config = $config;
@@ -47,7 +49,8 @@ class BEasyPaymentUSDT {
 
         $curl = new Curl();
         $curl->setUserAgent('BEPUSDT');
-        $curl->setOpt(CURLOPT_SSL_VERIFYPEER, 0);
+        $curl->setOpt(CURLOPT_SSL_VERIFYPEER, true);
+        $curl->setOpt(CURLOPT_SSL_VERIFYHOST, 2);
         $curl->setOpt(CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
         $curl->post($this->config['bepusdt_url'] . '/api/v1/order/create-transaction', json_encode($params));
         $result = $curl->response;
@@ -66,6 +69,8 @@ class BEasyPaymentUSDT {
 
     public function notify($params)
     {
+        if (trim((string) ($this->config['bepusdt_apitoken'] ?? '')) === ''
+            || !PaymentCallback::isFlatPayload($params) || !is_string($params['signature'] ?? null)) return false;
         $sign = $params['signature'];
         unset($params['signature']);
         ksort($params);
@@ -73,17 +78,24 @@ class BEasyPaymentUSDT {
         $str = stripslashes(urldecode(http_build_query($params))) . $this->config['bepusdt_apitoken'];
         $generateSignature = md5($str);
         if (!hash_equals($generateSignature, $sign)) {
-            return('cannot pass verification');
+            return false;
         }
-        $status = $params['status'];
+        $status = $params['status'] ?? null;
         // 1: pending 2: success 3: expired
         if ($status != 2) {
-            return('failed');
+            return false;
         }
-        return [
+        if (empty($params['order_id']) || empty($params['trade_id'])) return false;
+        $verified = [
             'trade_no' => $params['order_id'],
             'callback_no' => $params['trade_id'],
             'custom_result' => 'ok'
         ];
+        if (array_key_exists('amount', $params)) {
+            $amount = PaymentCallback::amountMinor($params['amount']);
+            if ($amount === null) return false;
+            $verified['amount_minor'] = $amount;
+        }
+        return $verified;
     }
 }

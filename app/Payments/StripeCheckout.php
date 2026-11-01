@@ -6,6 +6,7 @@ use Stripe\Stripe;
 use Stripe\Checkout\Session;
 
 class StripeCheckout {
+    private $config;
     public function __construct($config)
     {
         $this->config = $config;

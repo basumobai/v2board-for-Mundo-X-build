@@ -9,6 +9,7 @@ use Stripe\Source;
 use Stripe\Stripe;
 
 class StripeWepay {
+    private $config;
     public function __construct($config)
     {
         $this->config = $config;

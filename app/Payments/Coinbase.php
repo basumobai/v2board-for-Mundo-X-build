@@ -2,7 +2,10 @@
 
 namespace App\Payments;
 
+use App\Support\PaymentCallback;
+
 class Coinbase {
+    private $config;
     public function __construct($config) {
         $this->config = $config;
     }
@@ -59,28 +62,37 @@ class Coinbase {
     }
 
     public function notify($params) {
-        
-        $payload = trim(request()->getContent() ?: json_encode($_POST));
+        if (!is_string($this->config['coinbase_webhook_key'] ?? null) || trim($this->config['coinbase_webhook_key']) === '') return false;
+        $payload = request()->getContent();
+        if (!is_string($payload) || $payload === '') return false;
         $json_param = json_decode($payload, true); 
 
 
-        $headerName = 'X-Cc-Webhook-Signature';
-        $headers = getallheaders();
-        $signatureHeader = isset($headers[$headerName]) ? $headers[$headerName] : '';
+        $signatureHeader = (string) request()->header('X-Cc-Webhook-Signature', '');
         $computedSignature = \hash_hmac('sha256', $payload, $this->config['coinbase_webhook_key']);
 
         if (!self::hashEqual($signatureHeader, $computedSignature)) {
             abort(400, 'HMAC signature does not match');
         }
         
-        $out_trade_no = $json_param['event']['data']['metadata']['outTradeNo'];
-        $pay_trade_no=$json_param['event']['id'];
-        return [
+        if (!is_array($json_param) || !is_array($json_param['event'] ?? null)) return false;
+        // Creating a signed charge is not evidence that it has been paid.
+        if (($json_param['event']['type'] ?? '') !== 'charge:confirmed') return 'success';
+        $out_trade_no = $json_param['event']['data']['metadata']['outTradeNo'] ?? null;
+        $pay_trade_no = $json_param['event']['id'] ?? null;
+        if (!is_string($out_trade_no) || $out_trade_no === '' || !is_string($pay_trade_no) || $pay_trade_no === '') return false;
+        $verified = [
             'trade_no' => $out_trade_no,
             'callback_no' => $pay_trade_no
         ];
-        http_response_code(200);
-        return('success');
+        $price = $json_param['event']['data']['pricing']['local'] ?? null;
+        if (is_array($price)) {
+            if (($price['currency'] ?? '') !== 'CNY') return false;
+            $amount = PaymentCallback::amountMinor($price['amount'] ?? null);
+            if ($amount === null) return false;
+            $verified['amount_minor'] = $amount;
+        }
+        return $verified;
     }
 
 
