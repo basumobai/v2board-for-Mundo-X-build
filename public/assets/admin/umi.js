@@ -73660,7 +73660,7 @@
                     paymentMethods: [],
                     selectPaymentMethod: void 0,
                     form: {},
-                    config: this.props.record && this.props.record.config || {}
+                    config: b()({}, this.props.record && this.props.record.config || {})
                 }
             }
             save() {
@@ -73686,24 +73686,30 @@
                         this.setState({
                             visible: !0,
                             paymentMethods: e,
-                            selectPaymentMethod: this.state.submit.payment || e[0]
+                            selectPaymentMethod: this.state.selectPaymentMethod || this.state.submit.payment || e[0]
                         }, ()=>{
-                            this.onSelectPaymentMethod(this.state.submit.payment || e[0])
+                            this.onSelectPaymentMethod(this.state.selectPaymentMethod)
                         }
                         )
                     }
                 })
             }
             onSelectPaymentMethod(e) {
+                var previous = this.state.selectPaymentMethod;
+                this.paymentConfigs = this.paymentConfigs || {};
+                if (previous && previous !== e)
+                    this.paymentConfigs[previous] = b()({}, this.state.config);
+                var config = previous === e ? this.state.config : this.paymentConfigs[e] || (e === this.state.submit.payment ? this.state.submit.config || {} : {});
+                var requestId = (this.paymentFormRequestId || 0) + 1;
+                this.paymentFormRequestId = requestId;
+                this.setState({selectPaymentMethod: e, config: b()({}, config), form: {}});
                 this.props.dispatch({
                     type: "payment/getPaymentForm",
                     payment: e,
                     id: this.state.submit.id,
                     complete: t=>{
-                        this.setState({
-                            form: t,
-                            selectPaymentMethod: e
-                        })
+                        if (this.paymentFormRequestId === requestId)
+                            this.setState({form: t})
                     }
                 })
             }
@@ -73800,7 +73806,7 @@
                     style: {
                         width: "100%"
                     },
-                    defaultValue: r,
+                    value: r,
                     onChange: e=>this.onSelectPaymentMethod(e)
                 }, n.map(e=>{
                     return d.a.createElement(g["a"].Option, {
@@ -73814,7 +73820,7 @@
                         for: "example-text-input-alt"
                     }, i[e].label), ("input" === i[e].type || "text" === i[e].type || "string" === i[e].type || !i[e].type) && d.a.createElement(v["a"], {
                         placeholder: i[e].description,
-                        defaultValue: o[e] || i[e].value,
+                        value: void 0 !== o[e] ? o[e] : i[e].value || "",
                         onChange: t=>this.configOnChange(e, t.target.value)
                     }))
                 }

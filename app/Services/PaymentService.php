@@ -4,6 +4,7 @@ namespace App\Services;
 
 
 use App\Models\Payment;
+use App\Support\TrustedOrigins;
 
 class PaymentService
 {
@@ -75,7 +76,9 @@ class PaymentService
     public function pay($order)
     {
         // custom notify domain name
-        $notifyUrl = url("/api/v1/guest/payment/notify/{$this->method}/{$this->config['uuid']}");
+        $backend = config('security.backend_url', config('app.url'));
+        if (TrustedOrigins::origin($backend) === null) abort(500, 'invalid backend URL');
+        $notifyUrl = rtrim($backend, '/') . "/api/v1/guest/payment/notify/{$this->method}/{$this->config['uuid']}";
         if ($this->config['notify_domain']) {
             $parseUrl = parse_url($notifyUrl);
             $notifyUrl = $this->config['notify_domain'] . $parseUrl['path'];
@@ -83,11 +86,11 @@ class PaymentService
 
         return $this->payment->pay([
             'notify_url' => $notifyUrl,
-            'return_url' => url('/#/order/' . $order['trade_no']),
+            'return_url' => TrustedOrigins::frontendBase(request()->header('Origin')) . '/#/order/' . rawurlencode($order['trade_no']),
             'trade_no' => $order['trade_no'],
             'total_amount' => $order['total_amount'],
             'user_id' => $order['user_id'],
-            'stripe_token' => $order['stripe_token']
+            'stripe_token' => $order['stripe_token'] ?? null
         ]);
     }
 

@@ -1,11 +1,12 @@
-FROM php:8.2.35-cli-bookworm
+FROM php:8.4.27-cli-bookworm
 
 # Fail the build if a stale or substituted base image is used.
-RUN php -r 'if (PHP_VERSION_ID < 80235) { fwrite(STDERR, "PHP security baseline not met\n"); exit(1); }'
+RUN php -r 'if (PHP_MAJOR_VERSION !== 8 || PHP_MINOR_VERSION !== 4 || PHP_VERSION_ID < 80427) { fwrite(STDERR, "PHP security baseline not met\n"); exit(1); }'
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         git \

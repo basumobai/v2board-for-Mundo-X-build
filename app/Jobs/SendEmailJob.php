@@ -37,13 +37,14 @@ class SendEmailJob implements ShouldQueue
      */
     public function handle()
     {
+        $originalMailConfig = config('mail');
         if (config('v2board.email_host')) {
-            Config::set('mail.host', config('v2board.email_host', env('mail.host')));
-            Config::set('mail.port', config('v2board.email_port', env('mail.port')));
-            Config::set('mail.encryption', config('v2board.email_encryption', env('mail.encryption')));
-            Config::set('mail.username', config('v2board.email_username', env('mail.username')));
-            Config::set('mail.password', config('v2board.email_password', env('mail.password')));
-            Config::set('mail.from.address', config('v2board.email_from_address', env('mail.from.address')));
+            Config::set('mail.default', 'smtp');
+            foreach (['host', 'port', 'encryption', 'username', 'password'] as $field) {
+                Config::set('mail.mailers.smtp.' . $field, config('v2board.email_' . $field, config('mail.mailers.smtp.' . $field)));
+            }
+            Config::set('mail.mailers.smtp.scheme', config('v2board.email_encryption') === 'ssl' ? 'smtps' : 'smtp');
+            Config::set('mail.from.address', config('v2board.email_from_address', config('mail.from.address')));
             Config::set('mail.from.name', config('v2board.app_name', 'V2Board'));
         }
         $params = $this->params;
@@ -51,6 +52,7 @@ class SendEmailJob implements ShouldQueue
         $subject = $params['subject'];
         $params['template_name'] = 'mail.' . config('v2board.email_template', 'default') . '.' . $params['template_name'];
         try {
+            app('mail.manager')->purge('smtp');
             Mail::send(
                 $params['template_name'],
                 $params['template_value'],
@@ -68,6 +70,11 @@ class SendEmailJob implements ShouldQueue
             // Let the queue retry transient SMTP failures. Swallowing the
             // exception previously marked failed deliveries as successful.
             throw $e;
+        } finally {
+            // Horizon reuses this process. Do not retain the previous job's
+            // SMTP connection or credentials after either success or failure.
+            Config::set('mail', $originalMailConfig);
+            app('mail.manager')->purge('smtp');
         }
 
         $log = [
@@ -78,7 +85,6 @@ class SendEmailJob implements ShouldQueue
         ];
 
         MailLog::create($log);
-        $log['config'] = config('mail');
         return $log;
     }
 }

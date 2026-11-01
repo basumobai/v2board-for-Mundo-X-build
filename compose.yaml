@@ -21,6 +21,8 @@ x-v2board-service: &v2board-service
     redis:
       condition: service_healthy
   network_mode: host
+  group_add: ["${REDIS_GID:-1000}"]
+  security_opt: ["no-new-privileges:true"]
   restart: unless-stopped
   stop_grace_period: 90s
   logging: &v2board-logging
@@ -85,6 +87,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    user: "999:${REDIS_GID:-1000}"
+    security_opt: ["no-new-privileges:true"]
     command:
       - redis-server
       - --appendonly
@@ -94,7 +98,7 @@ services:
       - --unixsocket
       - /data/redis.sock
       - --unixsocketperm
-      - "777"
+      - "770"
     volumes:
       - redis-data:/data
     healthcheck:

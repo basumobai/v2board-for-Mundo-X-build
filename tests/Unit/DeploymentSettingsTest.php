@@ -8,14 +8,14 @@ use PHPUnit\Framework\TestCase;
 
 class DeploymentSettingsTest extends TestCase
 {
-    /** @dataProvider invalidIntegers */
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidIntegers')]
     public function testInvalidNumbersAreRejected($value): void
     {
         $this->expectException(InvalidArgumentException::class);
         DeploymentSettings::positiveInteger('port', $value, 65535);
     }
 
-    public function invalidIntegers(): array
+    public static function invalidIntegers(): array
     {
         return [['0'], ['-1'], ['65536'], ['6600;echo bad'], ['1.5'], [''], ['06600'], ['999999999999999999999']];
     }

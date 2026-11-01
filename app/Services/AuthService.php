@@ -69,7 +69,11 @@ class AuthService
                 Cache::forget($cacheKey);
                 return false;
             }
-            return $auth['user'];
+            // JWT verification may be cached, authorization may not. A ban,
+            // deleted account or revoked admin role takes effect immediately.
+            $user = User::select(['id', 'email', 'is_admin', 'is_staff', 'banned'])->find($auth['user']['id']);
+            if (!$user || (int) $user->banned === 1) return false;
+            return $user->only(['id', 'email', 'is_admin', 'is_staff']);
         } catch (\Throwable $e) {
             return false;
         }
