@@ -76,12 +76,14 @@ class PaymentService
     public function pay($order)
     {
         // custom notify domain name
-        $backend = config('security.backend_url', config('app.url'));
-        if (TrustedOrigins::origin($backend) === null) abort(500, 'invalid backend URL');
+        $backend = TrustedOrigins::baseUrl(config('security.backend_url', config('app.url')));
+        if ($backend === null) abort(500, 'invalid backend URL');
         $notifyUrl = rtrim($backend, '/') . "/api/v1/guest/payment/notify/{$this->method}/{$this->config['uuid']}";
         if ($this->config['notify_domain']) {
             $parseUrl = parse_url($notifyUrl);
-            $notifyUrl = $this->config['notify_domain'] . $parseUrl['path'];
+            $domain = TrustedOrigins::baseUrl($this->config['notify_domain']);
+            if ($domain === null) abort(500, 'invalid payment notify domain');
+            $notifyUrl = $domain . $parseUrl['path'];
         }
 
         return $this->payment->pay([

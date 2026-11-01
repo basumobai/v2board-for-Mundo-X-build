@@ -39,7 +39,7 @@
 |Laravel|稳定版 13.39.0，约束 ^13.30，保留传统结构、现有路由及中文资源路径|
 |邮件|Symfony Mailer，现代 mailers 配置兼容 MAIL_DRIVER；每个任务清理 SMTP transport 并恢复配置；失败正常重试|
 |代理/维护|Laravel 内置 TrustProxies、PreventRequestsDuringMaintenance 和新 Symfony Forwarded 常量|
-|日志|Monolog 3 LogRecord；递归隐藏密码、令牌、支付 key/sign、会话和异常对象；URI 不保存查询串|
+|日志|Monolog 3 LogRecord；递归隐藏密码、令牌、支付 key/sign、会话和异常对象；URI 不保存查询串，异常标题不写入 SQL/凭据|
 |用户模型|Laravel Authenticatable，修正 provider 模型路径|
 |测试|PHPUnit 12.5.42，现代 bootstrap 和数据提供器，保留真实 MySQL 并发|
 |依赖|移除 fideloper/proxy、旧 Ignition、SwiftMailer 和开发分支约束，minimum-stability=stable|
@@ -113,7 +113,7 @@ JSON 保存原始公告链接、影响范围和日期。容器 OS、Nginx、Redi
 
 ## 验证和交付
 
-- 本地最终 PHPUnit 91 项 / 671 条断言，其中 2 项 MySQL 并发由 CI 执行；本地 PHP 8.3.6 仅为合成测试进程，
+- 本地最终 PHPUnit 92 项 / 676 条断言，其中 2 项 MySQL 并发由 CI 执行；本地 PHP 8.3.6 仅为合成测试进程，
   不是发布运行时证明。CI 和容器使用 PHP 8.4.27。
 - CI 使用真实 MySQL 8.4 多进程行锁测试，并在实际 MySQL/Redis/AdapterMan/Horizon 双实例中检查身份交替、
   即时撤权、原始 HMAC 和充值幂等。SQLite 不代替真实锁验证。

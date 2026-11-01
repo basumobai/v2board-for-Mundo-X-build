@@ -33,12 +33,20 @@ final class TrustedOrigins
 
     public static function frontendBase($origin = null): string
     {
-        if (self::allows($origin)) return self::origin($origin);
-        foreach ([config('security.frontend_url'), config('v2board.app_url'), config('app.url')] as $url) {
-            if (($base = self::origin($url)) !== null) {
-                return $base . rtrim(parse_url($url, PHP_URL_PATH) ?? '', '/');
+        $urls = [config('security.frontend_url'), config('v2board.app_url'), config('app.url')];
+        if (self::allows($origin)) {
+            foreach ($urls as $url) {
+                if (self::origin($url) === self::origin($origin)) return self::baseUrl($url);
             }
+            return self::origin($origin);
         }
+        foreach ($urls as $url) if (($base = self::baseUrl($url)) !== null) return $base;
         throw new \RuntimeException('A trusted application URL is required');
+    }
+
+    public static function baseUrl($url): ?string
+    {
+        $origin = self::origin($url);
+        return $origin === null ? null : $origin . rtrim(parse_url($url, PHP_URL_PATH) ?? '', '/');
     }
 }

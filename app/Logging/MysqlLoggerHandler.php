@@ -20,7 +20,8 @@ class MysqlLoggerHandler extends AbstractProcessingHandler
     {
         try{
             $log = [
-                'title' => $record->message,
+                'title' => ($record->context['exception'] ?? null) instanceof \Throwable
+                    ? 'Exception: ' . get_class($record->context['exception']) : $record->message,
                 'level' => $record->level->getName(),
                 'host' => request()->getSchemeAndHttpHost(),
                 // Authentication may be in the query string; store the path.

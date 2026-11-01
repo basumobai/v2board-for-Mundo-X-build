@@ -61,6 +61,24 @@ class PaymentSecurityTest extends TestCase
         $this->assertSame('secret', $form['key']['value']);
     }
 
+    public function testCheckoutUsesTrustedUrlsAndPreservesTheFrontendSubpath(): void
+    {
+        $payment = $this->payment();
+        config(['security.backend_url' => 'https://backend.example/api-base/?old=1#old',
+            'security.frontend_url' => 'https://frontend.example/panel/', 'cors.allowed_origins' => [],
+            'app.url' => 'https://backend.example', 'v2board.app_url' => null]);
+        foreach (['https://evil.example', 'https://frontend.example'] as $origin) {
+            $this->app->instance('request', Request::create('https://backend.example/checkout', 'POST', [], [], [],
+                ['HTTP_ORIGIN' => $origin, 'HTTP_X_FORWARDED_HOST' => 'evil.example']));
+            $result = (new PaymentService('Paytaro', $payment->id))->pay([
+                'trade_no' => 'order-redirect', 'total_amount' => 500, 'user_id' => 1,
+            ]);
+            parse_str(parse_url($result['data'], PHP_URL_QUERY), $query);
+            $this->assertSame('https://backend.example/api-base/api/v1/guest/payment/notify/Paytaro/' . $payment->uuid, $query['notify_url']);
+            $this->assertSame('https://frontend.example/panel/#/order/order-redirect', $query['return_url']);
+        }
+    }
+
     public function testEmptySecretsAndNestedSignaturePayloadsAreRejected(): void
     {
         $params = ['pid' => 'app-1', 'out_trade_no' => 'order-1', 'trade_no' => 'gateway-1', 'trade_status' => 'TRADE_SUCCESS'];

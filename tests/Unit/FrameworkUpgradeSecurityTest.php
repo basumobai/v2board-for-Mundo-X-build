@@ -67,7 +67,7 @@ class FrameworkUpgradeSecurityTest extends TestCase
         config(['security.frontend_url' => 'https://frontend.example/panel/?old=1#stale', 'cors.allowed_origins' => [],
             'app.url' => 'https://backend.example', 'v2board.app_url' => null]);
         $this->assertSame('https://frontend.example/panel', TrustedOrigins::frontendBase('https://evil.example'));
-        $this->assertSame('https://frontend.example', TrustedOrigins::frontendBase('https://frontend.example'));
+        $this->assertSame('https://frontend.example/panel', TrustedOrigins::frontendBase('https://frontend.example'));
         foreach (['javascript:alert(1)', "https://example.test\r\nX: injected", 'https://user:pass@example.test', '//example.test'] as $invalid) {
             $this->assertNull(TrustedOrigins::origin($invalid));
         }
@@ -83,14 +83,14 @@ class FrameworkUpgradeSecurityTest extends TestCase
             $table->integer('created_at'); $table->integer('updated_at');
         });
         $this->app->instance('request', Request::create('https://app.example/api/test?auth_data=query-secret', 'POST', [
-            'nested' => ['password' => 'password-secret', 'api_key' => 'key-secret', 'normal' => 'kept'],
+            'nested' => ['password' => 'password-secret', 'api_key' => 'key-secret', 'key' => 'gateway-secret', 'normal' => 'kept'],
         ]));
         $logger = new Logger('security', [new MysqlLoggerHandler()]);
-        $logger->error('Request failed', ['token' => 'context-secret', 'exception' => new \RuntimeException('exception-secret')]);
+        $logger->error('exception-secret', ['token' => 'context-secret', 'exception' => new \RuntimeException('exception-secret')]);
         $row = (array) DB::table('v2_log')->first();
         $this->assertSame('/api/test', $row['uri']);
         $serialized = json_encode($row);
-        foreach (['query-secret', 'password-secret', 'key-secret', 'context-secret', 'exception-secret'] as $secret) $this->assertStringNotContainsString($secret, $serialized);
+        foreach (['query-secret', 'password-secret', 'key-secret', 'gateway-secret', 'context-secret', 'exception-secret'] as $secret) $this->assertStringNotContainsString($secret, $serialized);
         $this->assertStringContainsString('kept', $serialized);
         $this->assertSame('ERROR', $row['level']);
     }

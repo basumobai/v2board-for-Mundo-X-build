@@ -86,7 +86,7 @@ class StripeCheckout {
         try {
             $session = Session::create($params);
         } catch (\Exception $e) {
-            info($e);
+            logger()->warning('Stripe checkout request failed', ['exception' => $e]);
             abort(500, "Failed to create order. Error: {$e->getMessage}");
         }
         return [

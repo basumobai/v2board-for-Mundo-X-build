@@ -65,7 +65,7 @@ class SendEmailJob implements ShouldQueue
                 'email' => $params['email'],
                 'subject' => $params['subject'],
                 'template_name' => $params['template_name'],
-                'error' => $e->getMessage()
+                'error' => get_class($e) . ':' . $e->getCode()
             ]);
             // Let the queue retry transient SMTP failures. Swallowing the
             // exception previously marked failed deliveries as successful.
