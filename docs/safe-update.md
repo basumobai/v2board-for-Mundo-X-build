@@ -2,7 +2,7 @@
 
 本流程用于本仓库的 Docker Compose 部署，需要本机 Docker、Git、flock、tar、sha256sum 和可连接的 MySQL TCP 数据库。更新会短暂停站；保留现有 `.env`、APP_KEY、Compose 项目名、端口、数据库、Redis 卷、面板设置、主题设置和未被 Git 跟踪的自定义资源。不要运行首次安装器，也不要删除卷。
 
-本版本包含 Laravel 8→13、PHP 8.4.27 和依赖生命周期升级，必须完整重建并重启常驻 PHP 进程。
+本版本包含 Laravel 8→13、PHP 8.4.27 / Alpine 3.24 和依赖生命周期升级，必须完整重建并重启常驻 PHP 进程。
 升级说明和公告处置见 [security-upgrade-20261101.md](security-upgrade-20261101.md)。
 可选的隔离网络迁移见 [hardened-deployment.md](hardened-deployment.md)，应单独验证宿主机 MySQL 连通后安排维护点。
 

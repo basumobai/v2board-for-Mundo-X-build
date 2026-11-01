@@ -12,12 +12,16 @@ tar -xzf "$tool_dir/trivy.tar.gz" -C "$tool_dir" trivy
 trivy="$tool_dir/trivy"
 "$trivy" --version > "$output/scanner-version.txt"
 "$trivy" fs --scanners vuln --format cyclonedx --output "$output/application-sbom.cdx.json" .
+"$trivy" --version > "$output/scanner-version.txt"
 failed=0
+HARDENED_DB_HOST=${HARDENED_DB_HOST:-host.docker.internal} docker compose -f compose.hardened.yaml build --pull gateway
 php_image=${SECURITY_PHP_IMAGE:-$(docker compose config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["services"]["web"]["image"])')}
+nginx_image=$(docker compose config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["services"]["gateway"]["image"])')
+unprivileged_image=$(HARDENED_DB_HOST=${HARDENED_DB_HOST:-host.docker.internal} docker compose -f compose.hardened.yaml config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["services"]["gateway"]["image"])')
 for entry in "php|$php_image" \
-    'nginx|nginx:stable-alpine' 'nginx-unprivileged|nginxinc/nginx-unprivileged:stable-alpine' 'redis|redis:7-alpine'; do
+    "nginx|$nginx_image" "nginx-unprivileged|$unprivileged_image" 'redis|redis:7-alpine'; do
     name=${entry%%|*}; image=${entry#*|}
-    if [[ $name != php ]]; then docker pull "$image"; fi
+    if [[ $name == redis ]]; then docker pull "$image"; fi
     docker image inspect --format '{{.Id}} {{json .RepoDigests}}' "$image" > "$output/$name-image.txt"
     "$trivy" image --scanners vuln --format cyclonedx --output "$output/$name-sbom.cdx.json" "$image"
     # Retain unfixed findings as well. A missing vendor patch is not an exemption.
@@ -27,6 +31,8 @@ for entry in "php|$php_image" \
 import json, sys
 with open(sys.argv[1]) as report:
     data = json.load(report)
+count = sum(len(result.get('Vulnerabilities', [])) for result in data.get('Results', []))
+print(json.dumps({'image': data.get('ArtifactName'), 'high_critical_findings': count}))
 for result in data.get('Results', []):
     for finding in result.get('Vulnerabilities', []):
         print(result['Target'], finding['VulnerabilityID'], finding['PkgName'], finding['Severity'],

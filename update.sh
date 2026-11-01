@@ -154,7 +154,7 @@ code_switched=true
 find public -type d -exec chmod u+rwx,go+rx {} +
 find public -type f -exec chmod u+rw,go+r {} +
 docker compose config --quiet
-docker compose build --pull web </dev/null
+docker compose build --pull web gateway </dev/null
 docker compose up -d --wait --wait-timeout 120 redis
 docker compose run --rm -T --no-deps installer php -r '
     // A Laravel 8 compiled provider/config cache cannot bootstrap Laravel 13.

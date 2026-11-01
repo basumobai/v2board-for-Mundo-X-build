@@ -24,7 +24,7 @@ prepare_deployment
 trap 'printf "安装未完成，未自动删除配置或数据。请查看上方错误；若数据库已导入，请勿删除 .env 重新安装。\n" >&2' ERR
 docker compose config --quiet </dev/null
 printf '\n[1/4] 构建 PHP 运行环境（首次可能需要几分钟）\n'
-docker compose build --pull web </dev/null
+docker compose build --pull web gateway </dev/null
 printf '\n[2/4] 按锁文件安装依赖\n'
 docker compose run --rm -T --no-deps installer composer install \
     --no-dev --prefer-dist --optimize-autoloader --no-interaction </dev/null

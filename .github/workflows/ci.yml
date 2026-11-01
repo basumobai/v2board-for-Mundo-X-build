@@ -86,7 +86,7 @@ jobs:
 
       - name: Build the PHP runtime image
         id: runtime-build
-        run: docker compose build web
+        run: docker compose build web gateway
 
       - name: Verify runtime extensions and OPcache policy
         run: |
