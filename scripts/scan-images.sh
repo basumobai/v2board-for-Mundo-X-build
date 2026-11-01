@@ -13,7 +13,8 @@ trivy="$tool_dir/trivy"
 "$trivy" --version > "$output/scanner-version.txt"
 "$trivy" fs --scanners vuln --format cyclonedx --output "$output/application-sbom.cdx.json" .
 failed=0
-for entry in "php|${COMPOSE_PROJECT_NAME:-mundo-v2board}-php:local" \
+php_image=${SECURITY_PHP_IMAGE:-$(docker compose config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["services"]["web"]["image"])')}
+for entry in "php|$php_image" \
     'nginx|nginx:stable-alpine' 'nginx-unprivileged|nginxinc/nginx-unprivileged:stable-alpine' 'redis|redis:7-alpine'; do
     name=${entry%%|*}; image=${entry#*|}
     if [[ $name != php ]]; then docker pull "$image"; fi

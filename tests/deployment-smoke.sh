@@ -128,7 +128,7 @@ printf 'Safe update preserves configuration and Redis; database backup restores 
     cd "$test_dir/a"
     docker compose stop gateway web horizon scheduler redis
     printf '\nCOMPOSE_FILE=compose.hardened.yaml\nHARDENED_DB_HOST=mysql-test\nHARDENED_DB_PORT=3306\nAPP_UID=%s\nAPP_GID=%s\n' "$(id -u)" "$(id -g)" >> .env
-    project=$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' .env)
+    project=$(docker compose config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["name"])')
     # Let Compose create its network, then attach the disposable test database.
     docker compose create redis
     docker network connect --alias mysql-test "$project-backend" "$mysql_name"

@@ -122,7 +122,11 @@ const server = createServer(async (req, res) => {
     }
     else if (url.pathname.endsWith('/server/manage/sort')) {
       const body = (await Array.fromAsync(req)).map(chunk => chunk.toString()).join('');
-      savedNodeSort = Object.fromEntries(new URLSearchParams(body));
+      savedNodeSort = req.headers['content-type']?.includes('json') ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body));
+      if (typeof savedNodeSort.vmess === 'object') {
+        savedNodeSort = Object.fromEntries(Object.entries(savedNodeSort).flatMap(([type, values]) =>
+          Object.entries(values).map(([id, rank]) => [`${type}[${id}]`, String(rank)])));
+      }
       data = true;
     }
     else if (/\/(save|update|drop|cancel|paid)$/.test(url.pathname)) data = true;
