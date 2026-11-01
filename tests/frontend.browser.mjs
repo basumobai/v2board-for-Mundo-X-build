@@ -29,6 +29,7 @@ let delayPaymentForm = false;
 let releasePaymentForm;
 let paymentFormStarted;
 let savedPayment;
+let savedNodeSort;
 function html(kind, url) {
   const user = kind === 'user';
   const color = url.searchParams.get('color') || 'default';
@@ -85,6 +86,12 @@ const server = createServer(async (req, res) => {
     else if (url.pathname.endsWith('/payment/save')) {
       const body = (await Array.fromAsync(req)).map(chunk => chunk.toString()).join('');
       savedPayment = req.headers['content-type']?.includes('json') ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body));
+      if (typeof savedPayment.config === 'string') savedPayment.config = JSON.parse(savedPayment.config);
+      savedPayment.config ||= {};
+      for (const [key,value] of new URLSearchParams(body)) {
+        const field = /^config\[([^\]]+)\]$/.exec(key);
+        if (field) savedPayment.config[field[1]] = value;
+      }
       data = true;
     }
     else if (url.pathname.endsWith('/getNodes')) {
@@ -111,6 +118,11 @@ const server = createServer(async (req, res) => {
       const name = req.headers['content-type']?.includes('json') ? JSON.parse(body).name : new URLSearchParams(body).get('name');
       if (!name) { res.statusCode = 422; res.end(JSON.stringify({code: 422, message: 'Name required'})); return; }
       nodes = [...nodes, { ...nodes[0], id: nodes.length + 1, name, type: 'v2node' }];
+      data = true;
+    }
+    else if (url.pathname.endsWith('/server/manage/sort')) {
+      const body = (await Array.fromAsync(req)).map(chunk => chunk.toString()).join('');
+      savedNodeSort = Object.fromEntries(new URLSearchParams(body));
       data = true;
     }
     else if (/\/(save|update|drop|cancel|paid)$/.test(url.pathname)) data = true;
@@ -318,6 +330,28 @@ try {
         await page.screenshot({ path: join(output, `admin-node-drawer-${width}.png`) });
         await page.locator('.v2board-drawer-action .ant-btn').first().click();
         console.log(`Node ${width}: create, stale response and transport recovery passed`);
+        if (width === 1440) {
+          const original = nodes;
+          nodes = [{...nodes[0],name:'拖动验证 A'}, {...nodes[0],id:900,name:'隐藏节点'}, {...nodes[1],name:'拖动验证 B'}];
+          await page.getByRole('button',{name:'刷新节点'}).click();
+          await page.getByText('隐藏节点',{exact:true}).waitFor();
+          await page.getByRole('button',{name:'编辑排序',exact:true}).click();
+          await page.getByPlaceholder('输入任意关键字搜索').fill('拖动验证');
+          const rows = page.locator('.ant-table-body').first().locator('tbody > tr');
+          assert.equal(await rows.count(),2);
+          await rows.first().locator('.v2board-node-sort-handle').dragTo(rows.nth(1));
+          await page.waitForFunction(()=>document.querySelector('.ant-table-body tbody > tr')?.textContent.includes('拖动验证 B'));
+          await Promise.all([
+            page.waitForResponse(response=>response.url().endsWith('/server/manage/sort')),
+            page.getByRole('button',{name:'保存排序',exact:true}).click(),
+          ]);
+          assert.equal(savedNodeSort['vmess[900]'],'0','Filtered drag selected the wrong global node');
+          assert.equal(savedNodeSort['vmess[1]'],'2');
+          assert.equal(savedNodeSort['v2node[2]'],'1');
+          nodes = original;
+          await page.getByPlaceholder('输入任意关键字搜索').fill('');
+          await page.getByRole('button',{name:'刷新节点'}).click();
+        }
         } catch (error) {
           console.log(`Node ${width} failed; requests: ${JSON.stringify(requests)}; errors: ${JSON.stringify(errors)}`);
           console.log('Node failure state:',await page.locator('body').innerText());

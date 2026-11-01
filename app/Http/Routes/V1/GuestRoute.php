@@ -13,7 +13,8 @@ class GuestRoute
             // Telegram
             $router->post('/telegram/webhook', 'V1\\Guest\\TelegramController@webhook');
             // Payment
-            $router->match(['get', 'post'], '/payment/notify/{method}/{uuid}', 'V1\\Guest\\PaymentController@notify');
+            $router->match(['get', 'post'], '/payment/notify/{method}/{uuid}', 'V1\\Guest\\PaymentController@notify')
+                ->middleware('throttle:payment-callbacks');
             // Comm
             $router->get ('/comm/config', 'V1\\Guest\\CommController@config');
         });

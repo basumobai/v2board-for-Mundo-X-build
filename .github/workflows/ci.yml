@@ -85,6 +85,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Build the PHP runtime image
+        id: runtime-build
         run: docker compose build web
 
       - name: Verify runtime extensions and OPcache policy
@@ -116,6 +117,7 @@ jobs:
         run: bash tests/deployment-smoke.sh
 
       - name: Scan runtime images and generate SBOMs
+        if: ${{ !cancelled() && steps.runtime-build.outcome == 'success' }}
         timeout-minutes: 15
         run: bash scripts/scan-images.sh
 

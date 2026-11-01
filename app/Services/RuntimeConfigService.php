@@ -132,6 +132,16 @@ class RuntimeConfigService
 
             $existingPermissions = is_file($path) ? @fileperms($path) : false;
             $permissions = $existingPermissions === false ? 0640 : ($existingPermissions & 0660);
+            // A root maintenance container writes into a host-owned checkout.
+            // Keep its owner able to back up the private configuration without
+            // granting world read permission to payment and SMTP credentials.
+            if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+                $owner = fileowner($directory);
+                $group = filegroup($directory);
+                if ($owner === false || $group === false || !chown($temporaryPath, $owner) || !chgrp($temporaryPath, $group)) {
+                    throw new RuntimeException('Unable to preserve configuration directory ownership');
+                }
+            }
             @chmod($temporaryPath, $permissions);
 
             if (!rename($temporaryPath, $path)) {

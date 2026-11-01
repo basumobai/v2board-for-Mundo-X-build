@@ -20,6 +20,27 @@ class FrameworkUpgradeSecurityTest extends TestCase
 {
     use CreatesSecurityDatabase;
 
+    public function testCallbackRateLimitKeepsPaymentConfigurationsIndependent(): void
+    {
+        config(['security.payment_callbacks_per_minute' => 2]);
+        \Illuminate\Support\Facades\Route::post('/probe/notify/{uuid}', fn () => response('ok'))->middleware('throttle:payment-callbacks');
+        $this->post('/probe/notify/first')->assertOk();
+        $this->post('/probe/notify/first')->assertOk();
+        $this->post('/probe/notify/first')->assertStatus(429)->assertHeader('Retry-After');
+        $this->post('/probe/notify/second')->assertOk();
+    }
+
+    public function testSymfonyMailerRendersTheExistingChineseTemplate(): void
+    {
+        config(['mail.default' => 'array', 'mail.from.address' => 'panel@example.test']);
+        $sent = Mail::send('mail.default.verify', ['name' => 'Mundo', 'code' => '123456', 'url' => 'https://panel.example.test'],
+            fn ($message) => $message->to('user@example.test')->subject('验证邮件'));
+        $this->assertNotNull($sent);
+        $this->assertSame('验证邮件', $sent->getSymfonySentMessage()->getOriginalMessage()->getSubject());
+        $this->assertStringContainsString('123456', $sent->getSymfonySentMessage()->getOriginalMessage()->getHtmlBody());
+        $this->assertSame(1, app('mail.manager')->mailer('array')->getSymfonyTransport()->messages()->count());
+    }
+
     public function testCorsAllowsOnlyExplicitOriginsAndHandlesPreflight(): void
     {
         config(['cors.allowed_origins' => ['https://frontend.example'], 'app.url' => 'https://backend.example',

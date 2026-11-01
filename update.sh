@@ -121,7 +121,8 @@ docker compose stop horizon
 # A quiescent source/database/Redis snapshot is taken before any migration.
 tar --exclude=./.git --exclude=./vendor --exclude=./node_modules --exclude=./.install.lock \
     -czf "$backup_dir/project.tar.gz" -C "$project_dir" .
-docker run --rm --network "$backup_network" -v "$backup_dir:/backup:ro" -v "$project_dir:/www:ro" \
+docker run --rm --network "$backup_network" --add-host host.docker.internal:host-gateway \
+    -v "$backup_dir:/backup:ro" -v "$project_dir:/www:ro" \
     --entrypoint mysqldump mysql:8.4 --defaults-extra-file=/backup/mysql-client.cnf \
     --single-transaction --quick --no-tablespaces --set-gtid-purged=OFF \
     --column-statistics=0 --routines --events --triggers --hex-blob \
@@ -155,6 +156,18 @@ find public -type f -exec chmod u+rw,go+r {} +
 docker compose config --quiet
 docker compose build --pull web </dev/null
 docker compose up -d --wait --wait-timeout 120 redis
+docker compose run --rm -T --no-deps installer php -r '
+    // A Laravel 8 compiled provider/config cache cannot bootstrap Laravel 13.
+    // Remove only generated framework caches, after the consistent backup.
+    $files = ["config.php", "packages.php", "services.php", "events.php", "routes.php"];
+    foreach ($files as $name) {
+        $path = "bootstrap/cache/" . $name;
+        if (is_file($path) && !unlink($path)) { exit(1); }
+    }
+    foreach (glob("bootstrap/cache/routes-*.php") as $path) {
+        if (is_file($path) && !unlink($path)) { exit(1); }
+    }
+' </dev/null
 docker compose run --rm -T --no-deps installer composer install \
     --no-dev --prefer-dist --optimize-autoloader --no-interaction </dev/null
 docker compose run --rm -T --no-deps web php artisan v2board:update </dev/null
