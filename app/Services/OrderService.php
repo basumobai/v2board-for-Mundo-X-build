@@ -265,29 +265,36 @@ class OrderService
         $order->surplus_order_ids = array_column($orders, 'id');
     }
 
-    public function paid(string $callbackNo)
+    public function paid(string $callbackNo, ?int $paymentId = null, ?int $amountMinor = null)
     {
-        $order = $this->order;
-        $paidAt = time();
-        $affected = Order::where('id', $order->id)
-            ->where('status', 0)
-            ->update([
-                'status' => 1,
-                'paid_at' => $paidAt,
-                'callback_no' => $callbackNo
-            ]);
+        if (trim($callbackNo) === '' || strlen($callbackNo) > 255) return false;
+        $changed = false;
+        $accepted = DB::transaction(function () use ($callbackNo, $paymentId, $amountMinor, &$changed) {
+            $changed = false;
+            $order = Order::where('id', $this->order->id)->lockForUpdate()->first();
+            if (!$order) return false;
+            // Bind the authenticated gateway configuration to the order inside
+            // the same lock as the state transition, including duplicate notices.
+            if ($paymentId !== null && ($paymentId < 1 || (int) $order->payment_id !== $paymentId)) return false;
+            $expectedAmount = (int) $order->total_amount + (int) $order->handling_amount;
+            if ($amountMinor !== null && $amountMinor !== $expectedAmount) return false;
+            if (in_array((int) $order->status, [1, 3], true)) return true;
+            if ((int) $order->status !== 0) return false;
+            $order->status = 1;
+            $order->paid_at = time();
+            $order->callback_no = $callbackNo;
+            if (!$order->save()) return false;
+            $this->order = $order;
+            $changed = true;
+            return true;
+        }, 3);
+        if (!$accepted || !$changed) return $accepted;
 
-        if ($affected !== 1) {
-            $status = Order::where('id', $order->id)->value('status');
-            return in_array((int) $status, [1, 3], true);
-        }
-
-        $order->status = 1;
-        $order->paid_at = $paidAt;
-        $order->callback_no = $callbackNo;
+        // Publish after the payment transaction commits. The existing
+        // check:order task recovers a paid order if the queue is unavailable.
         try {
-            OrderHandleJob::dispatch($order->trade_no);
-        } catch (\Exception $e) {
+            OrderHandleJob::dispatch($this->order->trade_no);
+        } catch (\Throwable $e) {
             return false;
         }
         return true;

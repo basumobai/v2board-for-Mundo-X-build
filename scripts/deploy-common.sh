@@ -87,6 +87,9 @@ finish_deployment() {
     docker compose up -d --wait --wait-timeout 120 redis
     docker compose run --rm -T --no-deps installer php artisan config:clear
     docker compose run --rm -T --no-deps installer php artisan view:cache
+    if docker compose --profile tools config --services | grep -qx permissions; then
+        docker compose run --rm -T --no-deps permissions
+    fi
     docker compose up -d --wait --wait-timeout 180
     docker compose run --rm -T --no-deps installer php docker/healthcheck.php gateway
     docker compose run --rm -T --no-deps installer php docker/admin-asset-smoke.php

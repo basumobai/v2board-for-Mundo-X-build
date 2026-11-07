@@ -55,7 +55,7 @@ class V2boardUpdate extends Command
         foreach ($sql as $item) {
             if (!$item) continue;
             try {
-                DB::select(DB::raw($item));
+                DB::statement($item);
             } catch (\Exception $e) {
                 // The historical update file contains non-repeatable DDL.
                 // Never mistake its best-effort pass for a verified migration.

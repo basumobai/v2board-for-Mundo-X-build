@@ -1,0 +1,2203 @@
+{
+  "date": "2026-11-01",
+  "run": "https://github.com/basumobai/v2board-for-Mundo-X-build/actions/runs/41296663641",
+  "scanner": "Trivy 0.76.1",
+  "status": "pre-remediation baseline",
+  "finding_count": 274,
+  "unique_cves": 213,
+  "note": "Package-level findings are not proof of reachable exploitation. linux-libc-dev contains build headers, not a running kernel. Remediation removes build dependencies, changes the PHP base OS and updates Nginx OS packages; final scans remain blocking.",
+  "findings": [
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53613",
+      "package": "bsdutils",
+      "severity": "HIGH",
+      "installed": "1:2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53615",
+      "package": "bsdutils",
+      "severity": "HIGH",
+      "installed": "1:2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-76642",
+      "package": "bsdutils",
+      "severity": "HIGH",
+      "installed": "1:2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78408",
+      "package": "bsdutils",
+      "severity": "HIGH",
+      "installed": "1:2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78410",
+      "package": "bsdutils",
+      "severity": "HIGH",
+      "installed": "1:2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-12064",
+      "package": "curl",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-6276",
+      "package": "curl",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8286",
+      "package": "curl",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8458",
+      "package": "curl",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8927",
+      "package": "curl",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-41992",
+      "package": "gzip",
+      "severity": "HIGH",
+      "installed": "1.12-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-54369",
+      "package": "libacl1",
+      "severity": "HIGH",
+      "installed": "2.3.1-3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53613",
+      "package": "libblkid1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53615",
+      "package": "libblkid1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-76642",
+      "package": "libblkid1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78408",
+      "package": "libblkid1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78410",
+      "package": "libblkid1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-12064",
+      "package": "libcurl3-gnutls",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-6276",
+      "package": "libcurl3-gnutls",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8286",
+      "package": "libcurl3-gnutls",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8458",
+      "package": "libcurl3-gnutls",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8927",
+      "package": "libcurl3-gnutls",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-12064",
+      "package": "libcurl4",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-6276",
+      "package": "libcurl4",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8286",
+      "package": "libcurl4",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8458",
+      "package": "libcurl4",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8927",
+      "package": "libcurl4",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-12064",
+      "package": "libcurl4-openssl-dev",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-6276",
+      "package": "libcurl4-openssl-dev",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8286",
+      "package": "libcurl4-openssl-dev",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8458",
+      "package": "libcurl4-openssl-dev",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-8927",
+      "package": "libcurl4-openssl-dev",
+      "severity": "HIGH",
+      "installed": "7.88.1-10+deb12u15",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2023-2953",
+      "package": "libldap-2.5-0",
+      "severity": "HIGH",
+      "installed": "2.5.13+dfsg-5",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53613",
+      "package": "libmount1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53615",
+      "package": "libmount1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-76642",
+      "package": "libmount1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78408",
+      "package": "libmount1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78410",
+      "package": "libmount1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-9538",
+      "package": "libperl5.36",
+      "severity": "HIGH",
+      "installed": "5.36.0-7+deb12u4",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53613",
+      "package": "libsmartcols1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53615",
+      "package": "libsmartcols1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-76642",
+      "package": "libsmartcols1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78408",
+      "package": "libsmartcols1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78410",
+      "package": "libsmartcols1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-7458",
+      "package": "libsqlite3-0",
+      "severity": "CRITICAL",
+      "installed": "3.40.1-2+deb12u2",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-11822",
+      "package": "libsqlite3-0",
+      "severity": "HIGH",
+      "installed": "3.40.1-2+deb12u2",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-11824",
+      "package": "libsqlite3-0",
+      "severity": "HIGH",
+      "installed": "3.40.1-2+deb12u2",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-16742",
+      "package": "libsystemd0",
+      "severity": "HIGH",
+      "installed": "252.39-1~deb12u2",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-69720",
+      "package": "libtinfo6",
+      "severity": "HIGH",
+      "installed": "6.4-4",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-16742",
+      "package": "libudev1",
+      "severity": "HIGH",
+      "installed": "252.39-1~deb12u2",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53613",
+      "package": "libuuid1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53615",
+      "package": "libuuid1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-76642",
+      "package": "libuuid1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78408",
+      "package": "libuuid1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78410",
+      "package": "libuuid1",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-6653",
+      "package": "libxml2",
+      "severity": "CRITICAL",
+      "installed": "2.9.14+dfsg-1.3~deb12u6",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-74860",
+      "package": "libxml2",
+      "severity": "HIGH",
+      "installed": "2.9.14+dfsg-1.3~deb12u6",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-86138",
+      "package": "libxml2",
+      "severity": "HIGH",
+      "installed": "2.9.14+dfsg-1.3~deb12u6",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-86140",
+      "package": "libxml2",
+      "severity": "HIGH",
+      "installed": "2.9.14+dfsg-1.3~deb12u6",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-86142",
+      "package": "libxml2",
+      "severity": "HIGH",
+      "installed": "2.9.14+dfsg-1.3~deb12u6",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-86143",
+      "package": "libxml2",
+      "severity": "HIGH",
+      "installed": "2.9.14+dfsg-1.3~deb12u6",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-86144",
+      "package": "libxml2",
+      "severity": "HIGH",
+      "installed": "2.9.14+dfsg-1.3~deb12u6",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-99083",
+      "package": "linux-libc-dev",
+      "severity": "CRITICAL",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2013-7445",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2019-19449",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2019-19814",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2021-3847",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2021-3864",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2023-52452",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2023-52586",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2023-52624",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2023-52751",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2023-53218",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-21803",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-26669",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-26836",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-26913",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-26914",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-26944",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-38570",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-38630",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-41045",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-41935",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-42118",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-42162",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-44941",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-44942",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-44951",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-46729",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-46811",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-46813",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-47691",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-50217",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-50226",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-50282",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-53068",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-53147",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-53168",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-53179",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-53218",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-56538",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-56775",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-57900",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2024-57982",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-21927",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-21967",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-21969",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-21985",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-23133",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-37750",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-37776",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-37777",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-37861",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-37952",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-37957",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38069",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38081",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38182",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38204",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38248",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38369",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38582",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38585",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38595",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38636",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38722",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-38734",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-39744",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-39797",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-39810",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-39859",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-39952",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-40025",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-40137",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-40333",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-40354",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-68809",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-71068",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-71073",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-71152",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-100072",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-23171",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-23208",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-23226",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-23327",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-23361",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-31432",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-31493",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-31527",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-31568",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-31729",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-43049",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-43125",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-43185",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-43250",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-45893",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-45943",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-45957",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-46054",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-46068",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-46130",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-46181",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-46219",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-46241",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-46293",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-52991",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53000",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53091",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53115",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53117",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53118",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53120",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53129",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53143",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53156",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53179",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53262",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53272",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53330",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64001",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64017",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64026",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64138",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64305",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64320",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64341",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64348",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64389",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64392",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64400",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64424",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-64556",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-68409",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-68426",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-68470",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-72042",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-72098",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-72130",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-74269",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-74345",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-74752",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-80837",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-80841",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89465",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89526",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89530",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89545",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89564",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89631",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89633",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89638",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89652",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89659",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89675",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89676",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89708",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89713",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89761",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89788",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89811",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-89972",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-90036",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-90048",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-90111",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-90206",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-90227",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-90315",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-93792",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-93817",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98111",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98222",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98364",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98466",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98490",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98715",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98716",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98725",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98741",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98742",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98769",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98805",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98853",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-98857",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-99056",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-99109",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-99167",
+      "package": "linux-libc-dev",
+      "severity": "HIGH",
+      "installed": "6.1.190-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53613",
+      "package": "mount",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53615",
+      "package": "mount",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-76642",
+      "package": "mount",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78408",
+      "package": "mount",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78410",
+      "package": "mount",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-69720",
+      "package": "ncurses-base",
+      "severity": "HIGH",
+      "installed": "6.4-4",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2025-69720",
+      "package": "ncurses-bin",
+      "severity": "HIGH",
+      "installed": "6.4-4",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-9538",
+      "package": "perl",
+      "severity": "HIGH",
+      "installed": "5.36.0-7+deb12u4",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-9538",
+      "package": "perl-base",
+      "severity": "HIGH",
+      "installed": "5.36.0-7+deb12u4",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-9538",
+      "package": "perl-modules-5.36",
+      "severity": "HIGH",
+      "installed": "5.36.0-7+deb12u4",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53613",
+      "package": "util-linux",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53615",
+      "package": "util-linux",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-76642",
+      "package": "util-linux",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78408",
+      "package": "util-linux",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78410",
+      "package": "util-linux",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53613",
+      "package": "util-linux-extra",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-53615",
+      "package": "util-linux-extra",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-76642",
+      "package": "util-linux-extra",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78408",
+      "package": "util-linux-extra",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2026-78410",
+      "package": "util-linux-extra",
+      "severity": "HIGH",
+      "installed": "2.38.1-5+deb12u3",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2023-45853",
+      "package": "zlib1g",
+      "severity": "CRITICAL",
+      "installed": "1:1.2.13.dfsg-1",
+      "fixed": null
+    },
+    {
+      "target": "v2board-for-mundo-x-build-php:local (debian 12.15)",
+      "id": "CVE-2023-45853",
+      "package": "zlib1g-dev",
+      "severity": "CRITICAL",
+      "installed": "1:1.2.13.dfsg-1",
+      "fixed": null
+    },
+    {
+      "target": "nginx:stable-alpine (alpine 3.24.3)",
+      "id": "CVE-2026-111497",
+      "package": "brotli-libs",
+      "severity": "CRITICAL",
+      "installed": "1.2.0-r1",
+      "fixed": "1.2.1-r0"
+    },
+    {
+      "target": "nginx:stable-alpine (alpine 3.24.3)",
+      "id": "CVE-2026-92392",
+      "package": "curl",
+      "severity": "HIGH",
+      "installed": "8.22.0-r0",
+      "fixed": "8.23.0-r0"
+    },
+    {
+      "target": "nginx:stable-alpine (alpine 3.24.3)",
+      "id": "CVE-2026-92392",
+      "package": "libcurl",
+      "severity": "HIGH",
+      "installed": "8.22.0-r0",
+      "fixed": "8.23.0-r0"
+    },
+    {
+      "target": "nginxinc/nginx-unprivileged:stable-alpine (alpine 3.24.2)",
+      "id": "CVE-2026-111497",
+      "package": "brotli-libs",
+      "severity": "CRITICAL",
+      "installed": "1.2.0-r1",
+      "fixed": "1.2.1-r0"
+    },
+    {
+      "target": "nginxinc/nginx-unprivileged:stable-alpine (alpine 3.24.2)",
+      "id": "CVE-2026-92392",
+      "package": "curl",
+      "severity": "HIGH",
+      "installed": "8.22.0-r0",
+      "fixed": "8.23.0-r0"
+    },
+    {
+      "target": "nginxinc/nginx-unprivileged:stable-alpine (alpine 3.24.2)",
+      "id": "CVE-2026-92392",
+      "package": "libcurl",
+      "severity": "HIGH",
+      "installed": "8.22.0-r0",
+      "fixed": "8.23.0-r0"
+    }
+  ]
+}

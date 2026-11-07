@@ -2,6 +2,10 @@
 
 本流程用于本仓库的 Docker Compose 部署，需要本机 Docker、Git、flock、tar、sha256sum 和可连接的 MySQL TCP 数据库。更新会短暂停站；保留现有 `.env`、APP_KEY、Compose 项目名、端口、数据库、Redis 卷、面板设置、主题设置和未被 Git 跟踪的自定义资源。不要运行首次安装器，也不要删除卷。
 
+本版本包含 Laravel 8→13、PHP 8.4.27 / Alpine 3.24 和依赖生命周期升级，必须完整重建并重启常驻 PHP 进程。
+升级说明和公告处置见 [security-upgrade-20261101.md](security-upgrade-20261101.md)。
+可选的隔离网络迁移见 [hardened-deployment.md](hardened-deployment.md)，应单独验证宿主机 MySQL 连通后安排维护点。
+
 ## 更新
 
 在面板目录执行 `bash update.sh`。旧版本的脚本没有自动备份，因此第一次升级到本版本时，使用下面的方式读取新版脚本，避免先 `git pull` 改动运行中的源码：
@@ -21,6 +25,10 @@ git show origin/master:update.sh | bash -s -- --project-dir "$PWD"
 2. 停止入口、Web 和 Scheduler，等待旧流量/统计队列（含执行中的任务）排空，最多 10 分钟；再停止 Horizon。
 3. 保存源码/配置/storage/主题归档、MySQL 事务快照和停止后的 Redis 数据卷归档，生成 SHA256SUMS。备份目录权限由 umask 077 限制；数据库凭据仅临时存于文件，成功或失败退出时都删除，不进入命令参数或日志。
 4. 只有备份完整并生成 COMPLETE 标记后才快进源码，安装锁定依赖、迁移、结清遗留流量并刷新视图缓存，最后启动和健康检查。
+
+框架升级会在备份之后删除生成的旧 config/provider/routes 缓存，不删除业务配置。
+COMPOSE_FILE=compose.hardened.yaml 时，MySQL 备份工具连接本实例 bridge 网络；Redis 由只读挂载的维护服务归档。
+私有配置继承配置目录所有者并限制其他用户读取，主机备份账号应拥有对应目录权限。
 
 备份默认位于项目旁的 `mundo-backups/`。目录含 `project.tar.gz`、`database.sql`、`redis.tar.gz`、`manifest.txt`、`SHA256SUMS` 和 `COMPLETE`。源码归档只排除项目根目录的 `.git`、vendor、node_modules；主题或自定义资源里的同名目录仍完整备份。依赖可按归档里的锁文件重新安装。备份失败且尚未切换源码时会尝试恢复旧服务；切换后失败不会自动倒退数据库或启动旧 Worker。
 

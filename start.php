@@ -53,14 +53,14 @@ global $kernel;
 
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 
-function run()
+function run(array $connectionServer = [])
 {
     global $kernel;
 
     ob_start();
 
     $response = $kernel->handle(
-        $request = Illuminate\Http\Request::capture()
+        $request = App\Support\WorkerRequest::capture($connectionServer)
     );
 
     $response->send();

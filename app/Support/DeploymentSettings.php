@@ -7,6 +7,15 @@ use RuntimeException;
 
 class DeploymentSettings
 {
+    public static function bindAddress(): string
+    {
+        $address = $_ENV['WEB_BIND_ADDRESS'] ?? getenv('WEB_BIND_ADDRESS') ?: '127.0.0.1';
+        if (!in_array($address, ['127.0.0.1', '0.0.0.0', '::1', '::'], true)) {
+            throw new InvalidArgumentException('WEB_BIND_ADDRESS 必须是本机或容器监听地址');
+        }
+        return str_contains($address, ':') ? '[' . $address . ']' : $address;
+    }
+
     public static function fromEnvironment(): array
     {
         $settings = [];

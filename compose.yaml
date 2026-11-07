@@ -21,6 +21,8 @@ x-v2board-service: &v2board-service
     redis:
       condition: service_healthy
   network_mode: host
+  group_add: ["${REDIS_GID:-1000}"]
+  security_opt: ["no-new-privileges:true"]
   restart: unless-stopped
   stop_grace_period: 90s
   logging: &v2board-logging
@@ -47,7 +49,10 @@ services:
       start_period: 20s
 
   gateway:
-    image: nginx:stable-alpine
+    image: "${COMPOSE_PROJECT_NAME:-mundo-v2board}-nginx:local"
+    build:
+      context: .
+      dockerfile: docker/nginx.Dockerfile
     network_mode: host
     volumes:
       - ./:/www:ro
@@ -85,6 +90,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    user: "999:${REDIS_GID:-1000}"
+    security_opt: ["no-new-privileges:true"]
     command:
       - redis-server
       - --appendonly
@@ -94,7 +101,7 @@ services:
       - --unixsocket
       - /data/redis.sock
       - --unixsocketperm
-      - "777"
+      - "770"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -117,6 +124,14 @@ services:
     volumes:
       - ./:/www
     environment: *v2board-environment
+
+  backup:
+    <<: *v2board-image
+    profiles: ["tools"]
+    network_mode: none
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    volumes: [redis-data:/data:ro]
 
 volumes:
   redis-data:

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\ServerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class ManageController extends Controller
 {
@@ -42,6 +43,7 @@ class ManageController extends Controller
             }
         }
 
+        Validator::make($params, ['*' => 'array', '*.*' => 'required|integer|min:0'])->validate();
         DB::transaction(function () use ($params) {
             foreach ($params as $serverType => $sorts) {
                 if (!isset(self::SERVER_MODELS[$serverType]) || !is_array($sorts)) {
@@ -50,6 +52,7 @@ class ManageController extends Controller
 
                 $model = self::SERVER_MODELS[$serverType];
                 foreach ($sorts as $id => $sort) {
+                    if (!ctype_digit((string) $id) || (int) $id < 1) abort(422, '节点ID无效');
                     $server = $model::find($id);
                     if (!$server || !$server->update(['sort' => $sort])) {
                         abort(500, '保存失败');

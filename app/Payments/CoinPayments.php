@@ -2,7 +2,10 @@
 
 namespace App\Payments;
 
+use App\Support\PaymentCallback;
+
 class CoinPayments {
+    private $config;
     public function __construct($config) {
         $this->config = $config;
     }
@@ -60,37 +63,32 @@ class CoinPayments {
 
     public function notify($params)
     {
-
-        if (!isset($params['merchant']) || $params['merchant'] != trim($this->config['coinpayments_merchant_id'])) {
-            abort(500, 'No or incorrect Merchant ID passed');
-        }
-
-        $headers = getallheaders();
-
-        ksort($params);
-        reset($params);
-        $request = stripslashes(http_build_query($params));
-
-        $headerName = 'Hmac';
-        $signHeader = isset($headers[$headerName]) ? $headers[$headerName] : '';
-
-        $hmac = hash_hmac("sha512", $request, trim($this->config['coinpayments_ipn_secret']));
-
-        // if ($hmac != $signHeader) { <-- Use this if you are running a version of PHP below 5.6.0 without the hash_equals function
-        //     abort(400, 'HMAC signature does not match');
-        // }
-
+        $secret = $this->config['coinpayments_ipn_secret'] ?? null;
+        if (!is_string($secret) || trim($secret) === '') return false;
+        $body = request()->getContent();
+        if (!is_string($body) || $body === '') return false;
+        $signHeader = (string) request()->header('HMAC', '');
+        $hmac = hash_hmac('sha512', $body, trim($secret));
         if (!hash_equals($hmac, $signHeader)) {
             abort(400, 'HMAC signature does not match');
         }
-
-        // HMAC Signature verified at this point, load some variables.
-        $status = $params['status'];
+        // Only parse the authenticated body; query parameters are not signed.
+        parse_str($body, $params);
+        if (!PaymentCallback::isFlatPayload($params)
+            || (string) ($params['merchant'] ?? '') !== trim((string) ($this->config['coinpayments_merchant_id'] ?? ''))
+            || empty($params['merchant']) || empty($params['item_number']) || empty($params['txn_id'])
+            || !preg_match('/\A-?[0-9]+\z/', (string) ($params['status'] ?? ''))) return false;
+        if (strtoupper((string) ($params['currency1'] ?? '')) !== strtoupper((string) ($this->config['coinpayments_currency'] ?? ''))
+            || empty($params['currency1'])) return false;
+        $amount = PaymentCallback::amountMinor($params['amount1'] ?? null);
+        if ($amount === null) return false;
+        $status = (int) $params['status'];
         if ($status >= 100 || $status == 2) {
             // payment is complete or queued for nightly payout, success
             return [
                 'trade_no' => $params['item_number'],
                 'callback_no' => $params['txn_id'],
+                'amount_minor' => $amount,
                 'custom_result' => 'IPN OK'
             ];
         } else if ($status < 0) {

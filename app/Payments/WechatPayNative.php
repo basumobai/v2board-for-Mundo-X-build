@@ -6,6 +6,7 @@ use Omnipay\Omnipay;
 use Omnipay\WechatPay\Helper;
 
 class WechatPayNative {
+    private $config;
     public function __construct($config)
     {
         $this->config = $config;
@@ -76,9 +77,14 @@ class WechatPayNative {
             return('FAIL');
         }
 
+        if ((string) ($data['appid'] ?? '') !== (string) $this->config['app_id']
+            || (string) ($data['mch_id'] ?? '') !== (string) $this->config['mch_id']
+            || !ctype_digit((string) ($data['total_fee'] ?? ''))
+            || (isset($data['fee_type']) && $data['fee_type'] !== 'CNY')) return false;
         return [
             'trade_no' => $data['out_trade_no'],
-            'callback_no' => $data['transaction_id']
+            'callback_no' => $data['transaction_id'],
+            'amount_minor' => (int) $data['total_fee'],
         ];
     }
 }

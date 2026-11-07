@@ -12,13 +12,29 @@ permissions:
 jobs:
   php:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql-security:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: security-test-only
+          MYSQL_DATABASE: v2board_test_security
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -psecurity-test-only"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      SECURITY_MYSQL_DATABASE: v2board_test_security
+      SECURITY_MYSQL_HOST: 127.0.0.1
+      SECURITY_MYSQL_PASSWORD: security-test-only
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
-          php-version: "8.2"
+          php-version: "8.4"
           extensions: bcmath, curl, dom, fileinfo, gd, igbinary, intl, mbstring, openssl, pcntl, pdo_mysql, pdo_sqlite, posix, redis, sockets, zip
           coverage: none
 
@@ -27,6 +43,11 @@ jobs:
 
       - name: Install locked dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Audit locked dependencies
+        run: |
+          mkdir -p test-results/security
+          composer audit --locked --format=json > test-results/security/composer-audit.json
 
       - name: Check PHP platform requirements
         run: composer check-platform-reqs
@@ -39,13 +60,20 @@ jobs:
       - name: Run all PHPUnit suites
         run: vendor/bin/phpunit
 
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: composer-audit
+          path: test-results/security/composer-audit.json
+
   compose:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Validate Compose configuration
         run: |
           docker compose config --quiet
+          HARDENED_DB_HOST=host.docker.internal docker compose -f compose.hardened.yaml --profile tools config --quiet
           COMPOSE_PROJECT_NAME=panel-b WEB_PORT=16601 GATEWAY_PORT=17002 WEB_WORKERS=1 docker compose config --quiet
 
       - name: Validate installer guards and defaults
@@ -54,10 +82,11 @@ jobs:
   container:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Build the PHP runtime image
-        run: docker compose build web
+        id: runtime-build
+        run: docker compose build web gateway
 
       - name: Verify runtime extensions and OPcache policy
         run: |
@@ -68,6 +97,10 @@ jobs:
           }));
           if ($missing) {
               fwrite(STDERR, "Missing extensions: " . implode(", ", $missing) . PHP_EOL);
+              exit(1);
+          }
+          if (PHP_VERSION_ID < 80427 || ini_get("session.upload_progress.enabled") !== "0") {
+              fwrite(STDERR, "PHP security baseline not met" . PHP_EOL);
               exit(1);
           }
           if (ini_get("opcache.validate_timestamps") !== "1"
@@ -83,12 +116,23 @@ jobs:
         timeout-minutes: 25
         run: bash tests/deployment-smoke.sh
 
+      - name: Scan runtime images and generate SBOMs
+        if: ${{ !cancelled() && steps.runtime-build.outcome == 'success' }}
+        timeout-minutes: 15
+        run: bash scripts/scan-images.sh
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: runtime-security-and-sbom
+          path: test-results/security/
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '22'
       - name: Install browser tooling
@@ -99,7 +143,7 @@ jobs:
           sudo apt-get install -y fonts-noto-cjk
       - name: Render shipped frontend on desktop and mobile
         run: node tests/frontend.browser.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: frontend-screenshots

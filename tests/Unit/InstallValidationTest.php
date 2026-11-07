@@ -17,14 +17,14 @@ class InstallValidationTest extends TestCase
         return $reflection->invoke(new V2boardInstall(), $value);
     }
 
-    /** @dataProvider invalidUrls */
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidUrls')]
     public function testInvalidUrlsAreRejected(string $value): void
     {
         $this->expectException(\RuntimeException::class);
         $this->invoke('normalizeAppUrl', $value);
     }
 
-    public function invalidUrls(): array
+    public static function invalidUrls(): array
     {
         return [['panel.example.com'], ['ftp://panel.example.com'], ['https://user:pass@panel.example.com'],
             ['https://panel.example.com/subpath'], ['https://panel.example.com/?a=b'], ['https://panel.example.com/#a']];
@@ -44,7 +44,7 @@ class InstallValidationTest extends TestCase
         }
     }
 
-    /** @dataProvider workerBudgets */
+    #[\PHPUnit\Framework\Attributes\DataProvider('workerBudgets')]
     public function testProductionHasBoundedQueueWorkers(int $budget): void
     {
         $oldEnv = $_ENV['HORIZON_MAX_PROCESSES'] ?? null;
@@ -76,7 +76,7 @@ class InstallValidationTest extends TestCase
         );
     }
 
-    public function workerBudgets(): array
+    public static function workerBudgets(): array
     {
         return [[1], [2], [4], [8], [128]];
     }

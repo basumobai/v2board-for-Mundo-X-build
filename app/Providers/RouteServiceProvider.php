@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -23,6 +26,14 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        RateLimiter::for('admin-api', static function (Request $request) {
+            return Limit::perMinute(config('security.admin_requests_per_minute', 600))
+                ->by($request->input('user.id', 'guest') . ':' . $request->ip());
+        });
+        RateLimiter::for('payment-callbacks', static function (Request $request) {
+            return Limit::perMinute(config('security.payment_callbacks_per_minute', 1200))
+                ->by($request->route('uuid') . ':' . $request->ip());
+        });
         //
         if (config('v2board.force_https')) {
             resolve(\Illuminate\Routing\UrlGenerator::class)->forceScheme('https');

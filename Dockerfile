@@ -1,19 +1,17 @@
-FROM php:8.2-cli-bookworm
+FROM php:8.4.27-cli-alpine3.24
 
-ENV COMPOSER_ALLOW_SUPERUSER=1
+# Fail the build if a stale or substituted base image is used.
+RUN php -r 'if (PHP_MAJOR_VERSION !== 8 || PHP_MINOR_VERSION !== 4 || PHP_VERSION_ID < 80427) { fwrite(STDERR, "PHP security baseline not met\n"); exit(1); }'
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        git \
-        unzip \
-        libcurl4-openssl-dev \
-        libfreetype6-dev \
-        libicu-dev \
-        libjpeg62-turbo-dev \
-        libonig-dev \
-        libpng-dev \
-        libzip-dev \
+ENV COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_ROOT_VERSION=dev-master
+
+RUN apk upgrade --no-cache \
+    && apk add --no-cache \
+        ca-certificates git unzip icu-libs icu-data-full libcurl freetype \
+        libjpeg-turbo oniguruma libpng libzip \
+    && apk add --no-cache --virtual .v2board-build-deps \
+        $PHPIZE_DEPS linux-headers curl-dev freetype-dev icu-dev \
+        libjpeg-turbo-dev oniguruma-dev libpng-dev libzip-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath \
@@ -27,9 +25,10 @@ RUN apt-get update \
         posix \
         sockets \
         zip \
-    && pecl install igbinary redis \
+    && pecl install igbinary-3.2.17RC1 redis-6.3.0 \
     && docker-php-ext-enable igbinary redis \
-    && rm -rf /tmp/pear /var/lib/apt/lists/*
+    && apk del --no-network .v2board-build-deps \
+    && rm -rf /tmp/pear /root/.pearrc
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
@@ -42,6 +41,7 @@ RUN printf '%s\n' \
     'display_errors=Off' \
     'display_startup_errors=Off' \
     'expose_php=Off' \
+    'session.upload_progress.enabled=0' \
     'log_errors=On' \
     'opcache.enable=1' \
     'opcache.enable_cli=1' \

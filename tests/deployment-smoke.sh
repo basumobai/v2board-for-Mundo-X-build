@@ -12,6 +12,7 @@ cleanup() {
         if [[ -f $test_dir/$panel/.env ]]; then
             if (( result != 0 )); then
                 (cd "$test_dir/$panel" && docker compose logs --tail=100 web gateway horizon) || true
+                (cd "$test_dir/$panel" && docker compose ps -aq | xargs -r docker inspect --format '{{.Name}} {{json .State.Health}}') || true
             fi
             (cd "$test_dir/$panel" && docker compose down -v) || true
         fi
@@ -61,6 +62,7 @@ done
     cd "$test_dir/a"
     docker compose stop scheduler
     docker compose exec -T web php tests/fixtures/TrafficPipelineProbe.php
+    docker compose exec -T -e CI=true web php tests/fixtures/RuntimeUpgradeProbe.php
     docker compose start scheduler
 )
 
@@ -121,3 +123,42 @@ printf 'Two-instance install, HTTP, restart, Redis isolation and production queu
     docker compose run --rm -T --no-deps installer php docker/healthcheck.php gateway
 )
 printf 'Safe update preserves configuration and Redis; database backup restores successfully.\n'
+
+# Migrate the same data and Redis volume to the isolated, non-root deployment.
+(
+    cd "$test_dir/a"
+    docker compose stop gateway web horizon scheduler redis
+    printf '\nCOMPOSE_FILE=compose.hardened.yaml\nHARDENED_DB_HOST=mysql-test\nHARDENED_DB_PORT=3306\nAPP_UID=%s\nAPP_GID=%s\n' "$(id -u)" "$(id -g)" >> .env
+    project=$(docker compose config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["name"])')
+    # Let Compose create its network, then attach the disposable test database.
+    docker compose create redis
+    docker network connect --alias mysql-test "$project-backend" "$mysql_name"
+    docker compose run --rm -T --no-deps permissions
+    source scripts/deploy-common.sh
+    finish_deployment
+    docker compose exec -T web php -r '
+        if (posix_geteuid() === 0 || is_writable("app/Services/AuthService.php")) { exit(1); }
+        if (!is_writable("storage/logs") || !is_writable("config")) { exit(1); }
+        if ((fileperms("/data/redis.sock") & 0777) !== 0770) { exit(1); }
+    '
+    [[ $(docker compose exec -T redis redis-cli -s /data/redis.sock GET deployment-probe) == panel-a ]]
+    docker compose exec -T -e CI=true web php tests/fixtures/RuntimeUpgradeProbe.php
+    docker compose stop scheduler
+    docker compose exec -T web php tests/fixtures/TrafficPipelineProbe.php
+    docker compose start scheduler
+    # A second real update must also snapshot MySQL over the isolated network.
+    (
+        cd "$test_dir/update-source"
+        printf isolated > hardened-update-probe
+        git add hardened-update-probe
+        git -c user.name=CI -c user.email=ci@example.test commit -m 'Isolated update fixture'
+        git push origin master
+    )
+    UPDATE_BACKUP_ROOT="$test_dir/hardened-backups" bash update.sh
+    [[ $(cat hardened-update-probe) == isolated ]]
+    backup=$(find "$test_dir/hardened-backups" -name COMPLETE -printf '%h\n')
+    [[ -s $backup/database.sql && -s $backup/redis.tar.gz ]]
+    (cd "$backup" && sha256sum -c SHA256SUMS)
+    docker network disconnect "$project-backend" "$mysql_name"
+)
+printf 'Isolated non-root deployment preserves data, Redis and runtime behavior.\n'

@@ -10,7 +10,7 @@ class ThemeService
     private $theme;
     private $runtimeConfig;
 
-    public function __construct($theme, RuntimeConfigService $runtimeConfig = null)
+    public function __construct($theme, ?RuntimeConfigService $runtimeConfig = null)
     {
         $this->theme = $theme;
         $this->path = public_path('theme/');

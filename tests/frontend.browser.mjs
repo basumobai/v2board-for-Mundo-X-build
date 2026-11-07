@@ -25,6 +25,11 @@ const requests = [];
 let delayNextNodeFetch = false;
 let releaseNodeFetch;
 let delayedNodeFetchStarted;
+let delayPaymentForm = false;
+let releasePaymentForm;
+let paymentFormStarted;
+let savedPayment;
+let savedNodeSort;
 function html(kind, url) {
   const user = kind === 'user';
   const color = url.searchParams.get('color') || 'default';
@@ -66,6 +71,29 @@ const server = createServer(async (req, res) => {
     else if (url.pathname.endsWith('/user/info')) data = users[0];
     else if (url.pathname.endsWith('/getUserInfoById')) data = users[0];
     else if (url.pathname.endsWith('/user/fetch')) { data = users; total = users.length; }
+    else if (url.pathname.endsWith('/payment/fetch')) data = [{id:42,name:'现有支付',payment:'Paytaro',enable:1,sort:0,notify_url:'https://backend.example/notify',config:{key:'saved-paytaro'}}];
+    else if (url.pathname.endsWith('/payment/getPaymentMethods')) data = ['EPay','Paytaro','Coinbase'];
+    else if (url.pathname.endsWith('/payment/getPaymentForm')) {
+      const body = (await Array.fromAsync(req)).map(chunk => chunk.toString()).join('');
+      const params = req.headers['content-type']?.includes('json') ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body));
+      data = params.payment === 'Coinbase' ? {coinbase_webhook_key:{label:'Coinbase secret',type:'input'}}
+        : {key:{label:`${params.payment} secret`,type:'input',...(params.payment==='Paytaro'?{value:'saved-paytaro'}:{})}};
+      if (delayPaymentForm && params.payment === 'EPay') {
+        delayPaymentForm = false;
+        await new Promise(resolve => { releasePaymentForm = resolve; paymentFormStarted(); });
+      }
+    }
+    else if (url.pathname.endsWith('/payment/save')) {
+      const body = (await Array.fromAsync(req)).map(chunk => chunk.toString()).join('');
+      savedPayment = req.headers['content-type']?.includes('json') ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body));
+      if (typeof savedPayment.config === 'string') savedPayment.config = JSON.parse(savedPayment.config);
+      savedPayment.config ||= {};
+      for (const [key,value] of new URLSearchParams(body)) {
+        const field = /^config\[([^\]]+)\]$/.exec(key);
+        if (field) savedPayment.config[field[1]] = value;
+      }
+      data = true;
+    }
     else if (url.pathname.endsWith('/getNodes')) {
       data = nodes.map(node => ({...node}));
       if (delayNextNodeFetch) {
@@ -90,6 +118,15 @@ const server = createServer(async (req, res) => {
       const name = req.headers['content-type']?.includes('json') ? JSON.parse(body).name : new URLSearchParams(body).get('name');
       if (!name) { res.statusCode = 422; res.end(JSON.stringify({code: 422, message: 'Name required'})); return; }
       nodes = [...nodes, { ...nodes[0], id: nodes.length + 1, name, type: 'v2node' }];
+      data = true;
+    }
+    else if (url.pathname.endsWith('/server/manage/sort')) {
+      const body = (await Array.fromAsync(req)).map(chunk => chunk.toString()).join('');
+      savedNodeSort = req.headers['content-type']?.includes('json') ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body));
+      if (typeof savedNodeSort.vmess === 'object') {
+        savedNodeSort = Object.fromEntries(Object.entries(savedNodeSort).flatMap(([type, values]) =>
+          Object.entries(values).map(([id, rank]) => [`${type}[${id}]`, String(rank)])));
+      }
       data = true;
     }
     else if (/\/(save|update|drop|cancel|paid)$/.test(url.pathname)) data = true;
@@ -157,7 +194,7 @@ try {
     await page.waitForFunction(()=>location.hash==='#/dashboard');
     await page.locator('#page-container').waitFor();
     await page.screenshot({path:join(output,`admin-legacy-skip-recovered-${width}.png`)});
-    for (const route of ['dashboard', 'user', 'server/manage']) {
+    for (const route of ['dashboard', 'user', 'config/payment', 'server/manage']) {
       await page.goto(`${origin}/admin#/${route}`);
       await page.locator('#main-container').waitFor();
       await page.waitForTimeout(700);
@@ -202,6 +239,40 @@ try {
         assert.ok(modal.x >= -1 && modal.x + modal.width <= width + 1, 'Modal leaves viewport');
         await page.screenshot({ path: join(output, `admin-user-modal-${width}.png`) });
         await page.locator('.ant-modal-content .ant-btn').first().click();
+      }
+      if (route === 'config/payment') {
+        const modal = page.locator('.ant-modal-content:visible');
+        const field = label => modal.locator('.form-group').filter({has:page.locator('label').getByText(label,{exact:true})}).locator('input');
+        const select = async method => {
+          await modal.locator('.ant-select-selection').click();
+          await page.locator('.ant-select-dropdown:visible').getByText(method,{exact:true}).click();
+        };
+        await page.locator('.ant-table-fixed-right').getByText('编辑',{exact:true}).first().click();
+        await field('Paytaro secret').waitFor();
+        assert.equal(await modal.locator('.ant-select-selection-selected-value').innerText(),'Paytaro','Editor selected the first gateway instead of the saved gateway');
+        assert.equal(await field('Paytaro secret').inputValue(),'saved-paytaro');
+        await field('Paytaro secret').fill('');
+        delayPaymentForm = true;
+        const started = new Promise(resolve => { paymentFormStarted = resolve; });
+        try {
+          await select('EPay'); await started;
+          await select('Coinbase');
+          await field('Coinbase secret').waitFor();
+          await field('Coinbase secret').fill('coinbase-draft');
+          releasePaymentForm();
+          await page.waitForLoadState('networkidle');
+          assert.equal(await field('Coinbase secret').inputValue(),'coinbase-draft','Stale gateway response overwrote the current form');
+          assert.equal(await field('EPay secret').count(),0);
+          await select('Paytaro');
+          await field('Paytaro secret').waitFor();
+          assert.equal(await field('Paytaro secret').inputValue(),'','Cleared credential was restored from the old form');
+          await page.screenshot({path:join(output,`admin-payment-editor-${width}.png`)});
+          await modal.locator('.ant-modal-footer .ant-btn-primary').click();
+          await modal.waitFor({state:'hidden'});
+          assert.equal(savedPayment.payment,'Paytaro');
+          assert.equal(savedPayment.config.key,'');
+          assert.equal(savedPayment.config.coinbase_webhook_key,undefined,'Another gateway credential leaked into save');
+        } finally { releasePaymentForm?.(); }
       }
       if (route === 'server/manage') {
         try {
@@ -263,6 +334,28 @@ try {
         await page.screenshot({ path: join(output, `admin-node-drawer-${width}.png`) });
         await page.locator('.v2board-drawer-action .ant-btn').first().click();
         console.log(`Node ${width}: create, stale response and transport recovery passed`);
+        if (width === 1440) {
+          const original = nodes;
+          nodes = [{...nodes[0],name:'拖动验证 A'}, {...nodes[0],id:900,name:'隐藏节点'}, {...nodes[1],name:'拖动验证 B'}];
+          await page.getByRole('button',{name:'刷新节点'}).click();
+          await page.getByText('隐藏节点',{exact:true}).waitFor();
+          await page.getByRole('button',{name:'编辑排序',exact:true}).click();
+          await page.getByPlaceholder('输入任意关键字搜索').fill('拖动验证');
+          const rows = page.locator('.ant-table-body').first().locator('tbody > tr');
+          assert.equal(await rows.count(),2);
+          await rows.first().locator('.v2board-node-sort-handle').dragTo(rows.nth(1));
+          await page.waitForFunction(()=>document.querySelector('.ant-table-body tbody > tr')?.textContent.includes('拖动验证 B'));
+          await Promise.all([
+            page.waitForResponse(response=>response.url().endsWith('/server/manage/sort')),
+            page.getByRole('button',{name:'保存排序',exact:true}).click(),
+          ]);
+          assert.equal(savedNodeSort['vmess[900]'],'0','Filtered drag selected the wrong global node');
+          assert.equal(savedNodeSort['vmess[1]'],'2');
+          assert.equal(savedNodeSort['v2node[2]'],'1');
+          nodes = original;
+          await page.getByPlaceholder('输入任意关键字搜索').fill('');
+          await page.getByRole('button',{name:'刷新节点'}).click();
+        }
         } catch (error) {
           console.log(`Node ${width} failed; requests: ${JSON.stringify(requests)}; errors: ${JSON.stringify(errors)}`);
           console.log('Node failure state:',await page.locator('body').innerText());
@@ -410,4 +503,4 @@ try {
     }
   }
 
-} finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
+} finally { releasePaymentForm?.(); await browser.close(); await new Promise(resolve => server.close(resolve)); }

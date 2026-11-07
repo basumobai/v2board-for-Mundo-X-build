@@ -114,7 +114,7 @@ class RuntimeConfigService
     private function writeArrayFile(string $path, array $config): void
     {
         $directory = dirname($path);
-        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+        if (!is_dir($directory) && !mkdir($directory, 0770, true) && !is_dir($directory)) {
             throw new RuntimeException("Unable to create configuration directory: {$directory}");
         }
 
@@ -131,7 +131,17 @@ class RuntimeConfigService
             }
 
             $existingPermissions = is_file($path) ? @fileperms($path) : false;
-            $permissions = $existingPermissions === false ? 0664 : ($existingPermissions & 0777);
+            $permissions = $existingPermissions === false ? 0640 : ($existingPermissions & 0660);
+            // A root maintenance container writes into a host-owned checkout.
+            // Keep its owner able to back up the private configuration without
+            // granting world read permission to payment and SMTP credentials.
+            if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+                $owner = fileowner($directory);
+                $group = filegroup($directory);
+                if ($owner === false || $group === false || !chown($temporaryPath, $owner) || !chgrp($temporaryPath, $group)) {
+                    throw new RuntimeException('Unable to preserve configuration directory ownership');
+                }
+            }
             @chmod($temporaryPath, $permissions);
 
             if (!rename($temporaryPath, $path)) {

@@ -3,6 +3,7 @@
 namespace App\Payments;
 
 use \Curl\Curl;
+use App\Support\PaymentCallback;
 
 /**
  * V2Board EPay MAPI adapter.
@@ -111,7 +112,8 @@ class EPayQrcode
 
     public function notify($params)
     {
-        if (!is_array($params) || empty($params['sign'])) {
+        if (trim((string) ($this->config['key'] ?? '')) === '' || trim((string) ($this->config['pid'] ?? '')) === ''
+            || !PaymentCallback::isFlatPayload($params) || !is_string($params['sign'] ?? null) || $params['sign'] === '') {
             return false;
         }
 
@@ -132,10 +134,16 @@ class EPayQrcode
             return false;
         }
 
-        return [
+        $verified = [
             'trade_no' => (string) $params['out_trade_no'],
             'callback_no' => (string) $params['trade_no'],
         ];
+        if (array_key_exists('money', $params)) {
+            $amount = PaymentCallback::amountMinor($params['money']);
+            if ($amount === null) return false;
+            $verified['amount_minor'] = $amount;
+        }
+        return $verified;
     }
 
     /** Documented signing: sort, omit sign/sign_type/empty, no URL encoding. */

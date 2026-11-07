@@ -20,7 +20,11 @@ class UserController extends Controller
         $user = User::where('is_admin', 0)
             ->where('id', $request->input('id'))
             ->where('is_staff', 0)
-            ->first();
+            ->first([
+                'id', 'email', 'banned', 'plan_id', 'group_id', 'transfer_enable',
+                'u', 'd', 'expired_at', 'speed_limit', 'device_limit',
+                'created_at', 'updated_at'
+            ]);
         if (!$user) abort(500, '用户不存在');
         return response([
             'data' => $user

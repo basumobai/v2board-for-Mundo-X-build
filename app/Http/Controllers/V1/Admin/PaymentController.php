@@ -46,7 +46,21 @@ class PaymentController extends Controller
 
     public function getPaymentForm(Request $request)
     {
-        $paymentService = new PaymentService($request->input('payment'), $request->input('id'));
+        $params = $request->validate([
+            'payment' => 'required|string|regex:/\A[A-Za-z][A-Za-z0-9_]*\z/',
+            'id' => 'nullable|integer|min:1',
+        ]);
+        $id = $params['id'] ?? null;
+        if ($id !== null && $id !== '') {
+            $existing = Payment::find($id);
+            if (!$existing) abort(404, 'payment is not found');
+            // Changing adapter in the editor needs an empty form, not the
+            // previous gateway's credentials or a mismatched config lookup.
+            if ($existing->payment !== $params['payment']) $id = null;
+        } else {
+            $id = null;
+        }
+        $paymentService = new PaymentService($params['payment'], $id);
         return response([
             'data' => $paymentService->form()
         ]);

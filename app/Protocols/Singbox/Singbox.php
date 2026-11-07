@@ -11,7 +11,7 @@ class Singbox
     private $config;
     private $supportsCertificatePublicKeyPin = false;
 
-    public function __construct($user, $servers, array $options = null)
+    public function __construct($user, $servers, ?array $options = null)
     {
         $this->user = $user;
         $this->servers = $servers;

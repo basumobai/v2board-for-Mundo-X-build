@@ -2,7 +2,10 @@
 
 namespace App\Payments;
 
+use App\Support\PaymentCallback;
+
 class EPay {
+    private $config;
     public function __construct($config)
     {
         $this->config = $config;
@@ -60,6 +63,9 @@ class EPay {
 
     public function notify($params)
     {
+        if (trim((string) ($this->config['key'] ?? '')) === '' || trim((string) ($this->config['pid'] ?? '')) === ''
+            || !PaymentCallback::isFlatPayload($params) || !is_string($params['sign'] ?? null)) return false;
+        if ((string) ($params['pid'] ?? '') !== (string) $this->config['pid']) return false;
         $sign = $params['sign'];
         unset($params['sign']);
         unset($params['sign_type']);
@@ -74,12 +80,19 @@ class EPay {
         // 强制要求交易状态为成功，避免未支付/处理中状态被误入账
         $tradeStatus = $params['trade_status'] ?? '';
         if ($tradeStatus !== 'TRADE_SUCCESS') {
-            return('fail');
+            return false;
         }
+        if (empty($params['out_trade_no']) || empty($params['trade_no'])) return false;
 
-        return [
+        $verified = [
             'trade_no' => $params['out_trade_no'],
             'callback_no' => $params['trade_no']
         ];
+        if (array_key_exists('money', $params)) {
+            $amount = PaymentCallback::amountMinor($params['money']);
+            if ($amount === null) return false;
+            $verified['amount_minor'] = $amount;
+        }
+        return $verified;
     }
 }

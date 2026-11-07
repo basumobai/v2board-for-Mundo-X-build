@@ -9,6 +9,7 @@ use Stripe\Source;
 use Stripe\Stripe;
 
 class StripeCredit {
+    private $config;
     public function __construct($config)
     {
         $this->config = $config;
@@ -42,7 +43,6 @@ class StripeCredit {
 
     public function pay($order)
     {
-        info($order);
         $currency = $this->config['currency'];
         $exchange = $this->exchange('CNY', strtoupper($currency));
         if (!$exchange) {
@@ -61,7 +61,7 @@ class StripeCredit {
                 ]
             ]);
         } catch (\Exception $e) {
-            info($e);
+            logger()->warning('Stripe credit request failed', ['exception' => $e]);
             abort(500, __('Payment failed. Please check your credit card information'));
         }
         if (!$charge->paid) {

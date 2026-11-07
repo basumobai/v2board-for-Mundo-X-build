@@ -12,6 +12,21 @@ use Tests\TestCase;
 
 class TlsCertificatePinningTest extends TestCase
 {
+    public function testMihomoRealityKemOptionDoesNotChangeOrdinaryTls(): void
+    {
+        $server = ['name' => 'Reality', 'host' => 'node.example.test', 'port' => 443, 'network' => 'tcp',
+            'network_settings' => [], 'tls' => 2, 'tls_settings' => ['public_key' => 'public-key', 'short_id' => 'abcd']];
+        foreach ([\App\Protocols\ClashMeta::class, \App\Protocols\ClashNyanpasu::class, \App\Protocols\ClashVerge::class] as $protocol) {
+            $server['tls'] = 2;
+            $config = $protocol::buildVless('test-uuid', $server);
+            $this->assertTrue($config['reality-opts']['support-x25519mlkem768']);
+            $this->assertSame('public-key', $config['reality-opts']['public-key']);
+            $this->assertFalse($config['skip-cert-verify']);
+            $server['tls'] = 1;
+            $this->assertArrayNotHasKey('reality-opts', $protocol::buildVless('test-uuid', $server));
+        }
+    }
+
     public function testRemoteModeGeneratesAValidKeyPairAndBothFingerprintFormats(): void
     {
         $settings = (new TlsCertificateService())->ensureRemoteCertificate([

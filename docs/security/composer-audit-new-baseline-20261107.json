@@ -1,0 +1,127 @@
+{
+    "advisories": {
+        "symfony/http-foundation": [
+            {
+                "advisoryId": "PKSA-24ph-xkrh-y79j",
+                "packageName": "symfony/http-foundation",
+                "affectedVersions": ">=2.0.0,<3.0.0|>=3.0.0,<4.0.0|>=4.0.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2.0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.56|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,<6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.50|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+                "title": "CVE-2026-118514: HEAD Requests Bypass the methods Option of security.access_control Rules and Firewalls: Incomplete Fix for CVE-2026-45075",
+                "cve": "CVE-2026-118514",
+                "link": "https://symfony.com/cve-2026-118514",
+                "reportedAt": "2026-11-04T10:45:07+00:00",
+                "sources": [
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "symfony/http-foundation/CVE-2026-118514.yaml"
+                    }
+                ],
+                "severity": null
+            },
+            {
+                "advisoryId": "PKSA-pr6q-2w5s-kzzf",
+                "packageName": "symfony/http-foundation",
+                "affectedVersions": ">=5.4.50,<5.4.56|>=6.4.29,<6.4.50|>=7.3.7,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+                "title": "Path Rules Enforced in Front of PHP Can Be Bypassed by Appending the Path to the Script Name",
+                "cve": null,
+                "link": "https://github.com/symfony/symfony/security/advisories/GHSA-3h27-hjv7-fqjx",
+                "reportedAt": "2026-11-04T00:00:00+00:00",
+                "sources": [
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "symfony/http-foundation/2026-11-04-21.yaml"
+                    }
+                ],
+                "severity": null
+            },
+            {
+                "advisoryId": "PKSA-nxjs-s6hn-vb6m",
+                "packageName": "symfony/http-foundation",
+                "affectedVersions": ">=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+                "title": "The \"private_ranges\" Trusted Proxies Shortcut Trusts Clients Presenting an IPv4-Mapped, 6to4, Teredo or NAT64 Address as Reverse Proxies",
+                "cve": null,
+                "link": "https://github.com/symfony/symfony/security/advisories/GHSA-xg2q-4rrq-657q",
+                "reportedAt": "2026-11-04T00:00:00+00:00",
+                "sources": [
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "symfony/http-foundation/2026-11-04-9.yaml"
+                    }
+                ],
+                "severity": null
+            },
+            {
+                "advisoryId": "PKSA-b2gg-vk1g-6d5q",
+                "packageName": "symfony/http-foundation",
+                "affectedVersions": ">=2.0.0,<2.1.0|>=2.1.0,<2.2.0|>=2.2.0,<2.3.0|>=2.3.0,<2.4.0|>=2.4.0,<2.5.0|>=2.5.0,<2.6.0|>=2.6.0,<2.7.0|>=2.7.0,<2.8.0|>=2.8.0,<3.0.0|>=3.0.0,<3.1.0|>=3.1.0,<3.2.0|>=3.2.0,<3.3.0|>=3.3.0,<3.4.0|>=3.4.0,<4.0.0|>=4.0.0,<4.1.0|>=4.1.0,<4.2.0|>=4.2.0,<4.3.0|>=4.3.0,<4.4.0|>=4.4.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2.0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.56|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,<6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.50|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+                "title": "Generated URLs Can Point to a Host Chosen by the Client",
+                "cve": null,
+                "link": "https://github.com/symfony/symfony/security/advisories/GHSA-5mx8-mwrp-5693",
+                "reportedAt": "2026-11-04T00:00:00+00:00",
+                "sources": [
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "symfony/http-foundation/2026-11-04-22.yaml"
+                    }
+                ],
+                "severity": null
+            }
+        ],
+        "symfony/http-kernel": [
+            {
+                "advisoryId": "PKSA-3gxv-7xhq-mgmz",
+                "packageName": "symfony/http-kernel",
+                "affectedVersions": ">=2.8.44,<3.0.0|>=3.4.14,<4.0.0|>=4.0.14,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2.0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.56|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,<6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.50|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+                "title": "Inline Fragments Let Untrusted Forwarded Headers Set the Host, Scheme and Port of the URLs Generated for the Main Request",
+                "cve": null,
+                "link": "https://github.com/symfony/symfony/security/advisories/GHSA-wg5q-m2ww-f3c9",
+                "reportedAt": "2026-11-04T00:00:00+00:00",
+                "sources": [
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "symfony/http-kernel/2026-11-04-11.yaml"
+                    }
+                ],
+                "severity": null
+            }
+        ],
+        "symfony/routing": [
+            {
+                "advisoryId": "PKSA-y8c5-1b7f-r1gj",
+                "packageName": "symfony/routing",
+                "affectedVersions": ">=4.1.0,<4.2.0|>=4.2.0,<4.3.0|>=4.3.0,<4.4.0|>=4.4.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2.0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.56|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,<6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.50|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+                "title": "CVE-2026-118516: Host Placeholders Can Match the Start of the Path in Compiled URL Matchers, Bypassing Path-Based Access Control",
+                "cve": "CVE-2026-118516",
+                "link": "https://symfony.com/cve-2026-118516",
+                "reportedAt": "2026-11-04T10:45:07+00:00",
+                "sources": [
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "symfony/routing/CVE-2026-118516.yaml"
+                    }
+                ],
+                "severity": null
+            }
+        ],
+        "symfony/yaml": [
+            {
+                "advisoryId": "PKSA-nktx-f1n1-b4yd",
+                "packageName": "symfony/yaml",
+                "affectedVersions": ">=2.0.0,<3.0.0|>=3.0.0,<4.0.0|>=4.0.0,<5.0.0|>=5.0.0,<5.1.0|>=5.1.0,<5.2.0|>=5.2.0,<5.3.0|>=5.3.0,<5.4.0|>=5.4.0,<5.4.56|>=6.0.0,<6.1.0|>=6.1.0,<6.2.0|>=6.2.0,<6.3.0|>=6.3.0,<6.4.0|>=6.4.0,<6.4.50|>=7.0.0,<7.1.0|>=7.1.0,<7.2.0|>=7.2.0,<7.3.0|>=7.3.0,<7.4.0|>=7.4.0,<7.4.23|>=8.0.0,<8.1.0|>=8.1.0,<8.1.11",
+                "title": "Exponential and Quadratic Parse Times in the YAML Parser Let a Single Document Hold a Process",
+                "cve": null,
+                "link": "https://github.com/symfony/symfony/security/advisories/GHSA-hwfg-qwvh-2wfx",
+                "reportedAt": "2026-11-04T00:00:00+00:00",
+                "sources": [
+                    {
+                        "name": "FriendsOfPHP/security-advisories",
+                        "remoteId": "symfony/yaml/2026-11-04-19.yaml"
+                    }
+                ],
+                "severity": null
+            }
+        ]
+    },
+    "abandoned": [],
+    "filter": [],
+    "cooldown": []
+}

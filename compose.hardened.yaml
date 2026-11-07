@@ -1,0 +1,165 @@
+# Set COMPOSE_FILE=compose.hardened.yaml in .env after the migration checks in
+# docs/hardened-deployment.md. Keep the same project name and Redis volume.
+x-image: &image
+  image: "${COMPOSE_PROJECT_NAME:-mundo-v2board}-php:local"
+
+x-environment: &environment
+  docker: "true"
+  COMPOSE_PROJECT_NAME: "${COMPOSE_PROJECT_NAME:-mundo-v2board}"
+  WEB_PORT: "${WEB_PORT:-6600}"
+  GATEWAY_PORT: "${GATEWAY_PORT:-7001}"
+  GATEWAY_HOST: gateway
+  TRUSTED_PROXY_HOST: gateway
+  GATEWAY_HEALTH_PORT: "8080"
+  WEB_BIND_ADDRESS: "0.0.0.0"
+  WEB_WORKERS: "${WEB_WORKERS:-2}"
+  WEB_MAX_REQUESTS: "${WEB_MAX_REQUESTS:-6600}"
+  HORIZON_MAX_PROCESSES: "${HORIZON_MAX_PROCESSES:-4}"
+  DB_HOST: "${HARDENED_DB_HOST:?Set HARDENED_DB_HOST to a database reachable from the bridge network}"
+  DB_PORT: "${HARDENED_DB_PORT:-3306}"
+  APP_DOCKER_NETWORK: "${COMPOSE_PROJECT_NAME:-mundo-v2board}-backend"
+
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+
+x-app: &app
+  <<: *image
+  working_dir: /www
+  user: "${APP_UID:-1000}:${APP_GID:-1000}"
+  group_add: ["${REDIS_GID:-1000}"]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  read_only: true
+  tmpfs: ["/tmp:rw,noexec,nosuid,size=64m,mode=1777"]
+  volumes:
+    - ./:/www:ro
+    - ./storage:/www/storage
+    - ./bootstrap/cache:/www/bootstrap/cache
+    - ./config:/www/config
+    - ./public/theme:/www/public/theme
+    - ./resources/rules:/www/resources/rules
+    - redis-data:/data
+  environment: *environment
+  extra_hosts: ["host.docker.internal:host-gateway"]
+  networks: [backend]
+  depends_on:
+    redis: {condition: service_healthy}
+  restart: unless-stopped
+  stop_grace_period: 90s
+  logging: *logging
+
+services:
+  web:
+    <<: *app
+    build: {context: ., dockerfile: Dockerfile}
+    command: php -c cli-php.ini webman.php start
+    healthcheck:
+      test: [CMD, php, docker/healthcheck.php, web]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+
+  horizon:
+    <<: *app
+    command: php artisan horizon
+    healthcheck:
+      test: [CMD, php, artisan, "horizon:status"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  scheduler:
+    <<: *app
+    command: [sh, docker/scheduler.sh]
+
+  gateway:
+    image: "${COMPOSE_PROJECT_NAME:-mundo-v2board}-nginx-unprivileged:local"
+    build:
+      context: .
+      dockerfile: docker/nginx-unprivileged.Dockerfile
+    group_add: ["${APP_GID:-1000}"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,mode=1777,size=64m
+      - /var/cache/nginx:rw,nosuid,uid=101,gid=101,mode=0750,size=64m
+      - /etc/nginx/conf.d:rw,nosuid,uid=101,gid=101,mode=0750,size=1m
+    volumes:
+      - ./public:/www/public:ro
+      - ./docker/nginx.hardened.conf:/etc/nginx/templates/default.conf.template:ro
+      - ./docker/v2board-proxy-headers.inc:/etc/nginx/v2board-proxy-headers.inc:ro
+    environment:
+      WEB_PORT: "${WEB_PORT:-6600}"
+      NGINX_ENVSUBST_FILTER: "^WEB_PORT$$"
+    ports: ["127.0.0.1:${GATEWAY_PORT:-7001}:8080"]
+    networks: [backend]
+    depends_on:
+      web: {condition: service_healthy}
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    user: "999:${REDIS_GID:-1000}"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: [/tmp]
+    command: [redis-server, --appendonly, "yes", --port, "0", --unixsocket, /data/redis.sock, --unixsocketperm, "770"]
+    volumes: [redis-data:/data]
+    networks: [backend]
+    healthcheck:
+      test: [CMD, redis-cli, -s, /data/redis.sock, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+  # Short-lived maintenance tools run with write access; serving processes do not.
+  installer:
+    <<: *image
+    profiles: [tools]
+    working_dir: /www
+    volumes: ["./:/www"]
+    environment: *environment
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    networks: [backend]
+    security_opt: ["no-new-privileges:true"]
+
+  permissions:
+    <<: *image
+    profiles: [tools]
+    working_dir: /www
+    command: [php, docker/prepare-hardened.php]
+    volumes: ["./:/www"]
+    network_mode: none
+    environment:
+      APP_UID: "${APP_UID:-1000}"
+      APP_GID: "${APP_GID:-1000}"
+    security_opt: ["no-new-privileges:true"]
+
+  backup:
+    <<: *image
+    profiles: [tools]
+    network_mode: none
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    volumes: [redis-data:/data:ro]
+
+volumes:
+  redis-data:
+
+networks:
+  backend:
+    name: "${COMPOSE_PROJECT_NAME:-mundo-v2board}-backend"
+    driver: bridge

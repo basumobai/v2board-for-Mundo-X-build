@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Log;
 use Monolog\Handler\AbstractProcessingHandler;
 use Monolog\Logger;
 use App\Models\Log as LogModel;
+use App\Support\SensitiveData;
+use Monolog\LogRecord;
 
 class MysqlLoggerHandler extends AbstractProcessingHandler
 {
@@ -14,31 +16,29 @@ class MysqlLoggerHandler extends AbstractProcessingHandler
         parent::__construct($level, $bubble);
     }
 
-    protected function write(array $record): void
+    protected function write(LogRecord $record): void
     {
         try{
-            if(isset($record['context']['exception']) && is_object($record['context']['exception'])){
-                $record['context']['exception'] = (array)$record['context']['exception'];
-            }
-            $record['request_data'] = request()->all() ??[];
             $log = [
-                'title' => $record['message'],
-                'level' => $record['level_name'],
-                'host' => $record['request_host'] ?? request()->getSchemeAndHttpHost(),
-                'uri' => $record['request_uri'] ?? request()->getRequestUri(),
-                'method' => $record['request_method'] ?? request()->getMethod(),
+                'title' => ($record->context['exception'] ?? null) instanceof \Throwable
+                    ? 'Exception: ' . get_class($record->context['exception']) : $record->message,
+                'level' => $record->level->getName(),
+                'host' => request()->getSchemeAndHttpHost(),
+                // Authentication may be in the query string; store the path.
+                'uri' => '/' . request()->path(),
+                'method' => request()->getMethod(),
                 'ip' => request()->getClientIp(),
-                'data' => json_encode($record['request_data']) ,
-                'context' => isset($record['context']) ? json_encode($record['context']) : '',
-                'created_at' => strtotime($record['datetime']),
-                'updated_at' => strtotime($record['datetime']),
+                'data' => json_encode(SensitiveData::redact(request()->all())),
+                'context' => json_encode(SensitiveData::redact($record->context)),
+                'created_at' => $record->datetime->getTimestamp(),
+                'updated_at' => $record->datetime->getTimestamp(),
             ];
 
             LogModel::insert(
                 $log
             );
-        }catch (\Exception $e){
-            Log::channel('daily')->error($e->getMessage().$e->getFile().$e->getTraceAsString());
+        }catch (\Throwable $e){
+            Log::channel('daily')->error('Database log write failed', ['exception' => get_class($e)]);
         }
     }
 }
