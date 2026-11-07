@@ -415,37 +415,33 @@ class UserController extends Controller
 
     public function transfer(UserTransfer $request)
     {
-        $user = User::find($request->user['id']);
-        if (!$user) {
-            abort(500, __('The user does not exist'));
-        }
-        if ($request->input('transfer_amount') > $user->commission_balance) {
-            abort(500, __('Insufficient commission balance'));
-        }
-        DB::beginTransaction();
-        $order = new Order();
-        $orderService = new OrderService($order);
-        $order->user_id = $request->user['id'];
-        $order->plan_id = 0;
-        $order->period = 'deposit';
-        $order->trade_no = Helper::generateOrderNo();
-        $order->total_amount = $request->input('transfer_amount');
+        $transferAmount = (int) $request->input('transfer_amount');
+        DB::transaction(function () use ($request, $transferAmount) {
+            // Share the same user row lock as order fulfilment. Never check a
+            // stale balance before acquiring it, or overwrite another credit.
+            $user = User::whereKey($request->user['id'])->lockForUpdate()->first();
+            if (!$user) abort(500, __('The user does not exist'));
+            if ($transferAmount > $user->commission_balance) {
+                abort(500, __('Insufficient commission balance'));
+            }
+            $order = new Order();
+            $orderService = new OrderService($order);
+            $order->user_id = $user->id;
+            $order->plan_id = 0;
+            $order->period = 'deposit';
+            $order->trade_no = Helper::generateOrderNo();
+            $order->total_amount = $transferAmount;
+            $orderService->setOrderType($user);
+            $orderService->setInvite($user);
 
-        $orderService->setOrderType($user);
-        $orderService->setInvite($user);
-
-        $user->commission_balance = $user->commission_balance - $request->input('transfer_amount');
-        $user->balance = $user->balance + $request->input('transfer_amount');
-        $order->status = 3;
-        $order->total_amount = 0;
-        $order->surplus_amount = $request->input('transfer_amount');
-        $order->callback_no = '佣金划转 Commission transfer';
-        if (!$order->save()||!$user->save()) {
-            DB::rollback();
-            abort(500, __('Transfer failed'));
-        }
-
-        DB::commit();
+            $user->commission_balance -= $transferAmount;
+            $user->balance += $transferAmount;
+            $order->status = 3;
+            $order->total_amount = 0;
+            $order->surplus_amount = $transferAmount;
+            $order->callback_no = '佣金划转 Commission transfer';
+            if (!$order->save() || !$user->save()) abort(500, __('Transfer failed'));
+        }, 5);
 
         return response([
             'data' => true

@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Http\Middleware\Admin;
+use App\Http\Middleware\Client;
 use App\Http\Middleware\Staff;
 use App\Http\Middleware\User as UserMiddleware;
 use App\Http\Controllers\V1\Staff\UserController;
@@ -50,6 +51,53 @@ class AuthSecurityTest extends TestCase
                 $this->assertSame(403, $error->getStatusCode());
             }
         }
+    }
+
+    public function testSubscriptionRejectsInvalidTypesBeforeOtpCacheOrDatabase(): void
+    {
+        Cache::spy();
+        foreach ([0, 1, 2] as $mode) {
+            config(['v2board.show_subscribe_method' => $mode]);
+            foreach ([null, [], ['x'], true, 123, ' ', ''] as $token) {
+                try {
+                    (new Client())->handle(Request::create('/', 'GET', ['token' => $token]), function () {
+                        $this->fail('Invalid subscription token reached controller');
+                    });
+                    $this->fail('Invalid subscription token accepted');
+                } catch (HttpException $error) {
+                    $this->assertSame(403, $error->getStatusCode());
+                }
+            }
+        }
+        Cache::shouldNotHaveReceived('get');
+        Cache::shouldNotHaveReceived('has');
+    }
+
+    public function testMailboxValidationRejectsAccentsAndAcceptsAscii(): void
+    {
+        foreach ([new \App\Http\Requests\Passport\AuthForget(), new \App\Http\Requests\Passport\AuthRegister(),
+            new \App\Http\Requests\Passport\CommSendEmailVerify()] as $request) {
+            $rules = ['email' => $request->rules()['email']];
+            foreach (['person@gmáil.com', 'pérson@example.com', ['user@example.com']] as $invalid) {
+                $this->assertTrue(validator(['email' => $invalid], $rules)->fails());
+            }
+            $this->assertFalse(validator(['email' => 'person+tag@example.com'], $rules)->fails());
+        }
+    }
+
+    public function testPasswordResetForVerifiedMailboxStillRevokesSessions(): void
+    {
+        $user = User::create(['email' => 'person@example.com', 'password' => 'old-hash']);
+        $token = (new AuthService($user))->generateAuthData(Request::create('/'))['auth_data'];
+        $key = CacheKey::get('EMAIL_VERIFY_CODE', $user->email);
+        Cache::put($key, '123456', 600);
+        $request = \App\Http\Requests\Passport\AuthForget::create('/', 'POST', [
+            'email' => $user->email, 'email_code' => '123456', 'password' => 'new-password',
+        ]);
+        $this->assertSame(200, (new \App\Http\Controllers\V1\Passport\AuthController())->forget($request)->getStatusCode());
+        $this->assertTrue(password_verify('new-password', $user->fresh()->password));
+        $this->assertNull(Cache::get($key));
+        $this->assertFalse(AuthService::decryptAuthData($token));
     }
 
     public function testValidTokensWorkAndRevocationInvalidatesWarmCache(): void

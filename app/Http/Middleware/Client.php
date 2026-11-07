@@ -19,7 +19,7 @@ class Client
     public function handle($request, Closure $next)
     {
         $token = $request->input('token');
-        if (empty($token)) {
+        if (!is_string($token) || trim($token) === '') {
             abort(403, 'token is null');
         }
         $submethod = (int)config('v2board.show_subscribe_method', 0);
@@ -31,6 +31,9 @@ class Client
                     abort(403, 'token is error');
                 }
                 $usertoken = Cache::pull("otpn_{$token}");
+                if (!is_string($usertoken) || trim($usertoken) === '') {
+                    abort(403, 'token is error');
+                }
                 Cache::forget("otp_{$usertoken}");
                 $token = $usertoken;
                 break;
@@ -64,6 +67,9 @@ class Client
                 break;
             default:
                 break;
+        }
+        if (!is_string($token) || trim($token) === '') {
+            abort(403, 'token is error');
         }
         $user = User::where('token', $token)->first();
         if (!$user) {

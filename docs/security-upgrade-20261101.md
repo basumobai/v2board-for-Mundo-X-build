@@ -1,6 +1,6 @@
 # Mundo-X V2Board 上游同步与安全升级记录
 
-日期：2026-11-01。仓库：`basumobai/v2board-for-Mundo-X-build`。版本：`1.7.5.20261101`。
+初始审计：2026-11-01；补充复核：2026-11-07。仓库：`basumobai/v2board-for-Mundo-X-build`。版本：`1.7.5.20261101`。
 
 ## 范围
 
@@ -9,6 +9,7 @@
 `4b1604d8220b60ba427779e3a54872b8cc40af5e`。上游独有 19 个提交、本地独有 63 个提交、上游变更 26 个文件。
 本 PR 扩展原 PR-01，选择性吸收功能，完成仓库内的框架、依赖、Web 防护、隔离部署和扫描工作。
 未整体覆盖代码，未伪造上游 Git 合并历史；最终合并以最新提交完整 CI 为准。
+11 月 7 日复核上游已到 `7cbed47151e5d91589f89cd21d1d7302fa6f4742`，增加 5 个提交；另行审查并融合其安全变更，见补充表。
 
 未连接生产服务器、商户账户、生产数据库或日志。生产实际 PHP 版本、入侵迹象、真实小额支付、
 防火墙和备份完整性仍需部署方验收。仓库合并不等于生产发布。
@@ -19,6 +20,9 @@
   每次核对会话及实时账户状态，封禁、删除、撤权立即生效；模型修改密码/角色/封禁时撤销会话。
 - 停止注册 Staff API；保留控制器采用字段白名单；用户模型隐藏密码、盐、算法和 remember token。
   用户本人登录与订阅必需的令牌交付保留，不能读取其他用户的订阅秘密。
+- 订阅令牌在 OTP/TOTP 缓存和数据库查询前检查字符串类型，转换后的缓存值也检查。
+  注册、发送验证码及重置密码采用 ASCII 邮箱格式；重置时逐字节比对标准化邮箱，避免 MySQL 重音不敏感排序规则把不同邮箱视为同一账户。
+  既有非 ASCII 邮箱账户须先由管理员核验身份、迁移至可验证的 ASCII 邮箱后使用这些流程；不自动修改已有邮箱或用户数据。
 - 支付 ID/UUID 同时绑定网关类型；全部 17 个内置网关统一拒绝空认证密钥；有效回调必须绑定订单 payment_id。
   核对协议提供且已认证的商户、币种、金额（含手续费）。无金额字段的旧协议只保证签名、配置和订单绑定。
 - Coinbase 只接受 charge:confirmed 入账；BTCPay 要求 InvoiceSettled 并复查已配置商店发票；
@@ -29,6 +33,7 @@
 - 恢复 Epusdt、MGate、BEasyPaymentUSDT 的 TLS 证书与主机名验证，无跳过验证选项。
 - 保留 MySQL 报告账本、Redis 兼容批次、重复上报幂等、跨账期边界及结清流程。
   未删除支付插件、表、字段、历史订单或业务数据，框架迁移没有新增破坏性 SQL。
+- 佣金划转在用户行锁内重新读取余额，与充值开通共用锁；资金变更和历史订单同事务提交，失败回滚，避免超支或覆盖并发充值。
 
 ## 框架与运行时
 
@@ -74,11 +79,22 @@ config/provider/routes 缓存，避免引用已移除类，重新编译视图并
 |cfabf395644b|支付安全|融合本地事务、锁、配置/金额/状态绑定及并发验证|
 |f8fb72b4d2e9|上游头|本轮审查边界，功能按以上记录处置|
 
+### 11 月 7 日补充的 5 个提交
+
+|提交|内容|处置|
+|---|---|---|
+|5a15dff86617|邮箱重音/排序规则混淆|移植 ASCII 验证与重置邮箱精确比较；真实 MySQL 重音排序及合法重置回归|
+|d6ca8c9631e4|订阅 token 类型|扩展为缓存前和转换后双重检查，覆盖三种订阅模式|
+|6f32c1b3c547|历史合并|审查实际差异，不整体覆盖|
+|8d2d669fc0ca|佣金转账并发|融合本地用户行锁和事务重试；与重复充值同时运行验证总金额|
+|7cbed47151e5|历史合并/上游头|本次最终复核边界，累计处理原 19 个与新增 5 个提交|
+
 ## CVE 和依赖审计
 
 原始结果：[14 条基线公告](security/composer-audit-baseline-20261101.json)。
-升级结果：[最终 Composer audit](security/composer-audit-upgraded-20261101.json)。
-2026-11-01 最终锁文件审计为 **0 条公告、0 个弃用包，无忽略项**。后续新公告仍需持续复查。
+阶段结果：[11 月 1 日 Composer audit](security/composer-audit-upgraded-20261101.json)。
+11 月 7 日重跑 CI 发现 [7 条新增公告](security/composer-audit-new-baseline-20261107.json)，因此停止合并并继续修复。
+最新结果见 [11 月 7 日 Composer audit](security/composer-audit-upgraded-20261107.json)，无忽略项。后续新公告仍需持续复查。
 
 |公告|版本与处置|
 |---|---|
@@ -87,10 +103,22 @@ config/provider/routes 缓存，避免引用已移除类，重新编译视图并
 |Laravel CVE-2026-114509、CVE-2026-102279、CVE-2025-27515、PKSA-m5cs-t1y6-qpcs、PKSA-3r5d-mb8f-1qw9|13.39.0，认证/调试页/文件验证/临时签名/邮件 CRLF 公告不再命中；未以业务主要用 JWT 为由豁免旧框架|
 |Commonmark PKSA-m2dq-1fhr-29b1 / PKSA-m4t9-vsgq-8khn|2.10.7，HTML 过滤和表格扫描公告不再命中|
 |Flysystem CVE-2026-102601|3.36.0，路径规范化公告不再命中|
-|HttpFoundation CVE-2026-108082|7.4.22，Cache-Control 解析公告不再命中|
+|HttpFoundation CVE-2026-108082|7.4.23，Cache-Control 解析公告不再命中|
 |Mime CVE-2026-45070|7.4.22，邮件参数注入公告不再命中；实际模板经内存邮件传输验证|
-|Yaml CVE-2026-109413、CVE-2026-45304、CVE-2026-45305、CVE-2026-45133|6.4.49，替换 4.4.x-dev；递归、别名膨胀与正则公告不再命中|
+|Yaml CVE-2026-109413、CVE-2026-45304、CVE-2026-45305、CVE-2026-45133|6.4.50，替换 4.4.x-dev；递归、别名膨胀与正则公告不再命中|
 |JWT PKSA-y2cr-5h3j-g3ys / CVE-2025-45769|影响 <7.0.0，已锁定 7.1.0 不适用，删除旧忽略项|
+
+11 月 4 日发布的新增公告统一升级解决，不以暂未使用特定功能作为忽略理由：
+
+|公告|适用性与修复|
+|---|---|
+|CVE-2026-118514 / PKSA-24ph-xkrh-y79j|Symfony HEAD 防火墙方法规则；本应用使用 Laravel 鉴权，仍将 HttpFoundation 升至 7.4.23|
+|GHSA-3h27-hjv7-fqjx / PKSA-pr6q-2w5s-kzzf|脚本名附加路径可绕过前置路径规则；HttpFoundation 7.4.23|
+|GHSA-xg2q-4rrq-657q / PKSA-nxjs-s6hn-vb6m|private_ranges 代理快捷规则；本项目未配置此快捷规则，HttpFoundation 7.4.23|
+|GHSA-5mx8-mwrp-5693 / PKSA-b2gg-vk1g-6d5q|客户端控制生成 URL 主机；支付已使用可信配置，HttpFoundation 7.4.23|
+|GHSA-wg5q-m2ww-f3c9 / PKSA-3gxv-7xhq-mgmz|inline fragments 的转发头影响主请求 URL；项目未使用该功能，HttpKernel 7.4.23|
+|CVE-2026-118516 / PKSA-y8c5-1b7f-r1gj|编译路由主机占位符可能跨越路径；Routing 7.4.23|
+|GHSA-hwfg-qwvh-2wfx / PKSA-nktx-f1n1-b4yd|恶意 YAML 解析复杂度导致进程占用；Yaml 6.4.50|
 
 JSON 保存原始公告链接、影响范围和日期。容器 OS、Nginx、Redis 以当次实际镜像 Trivy 报告为准，
 不能从 Composer 零公告推断整个服务器无漏洞。
@@ -123,7 +151,7 @@ Nginx 两种镜像固定 1.30.6 并安装底层安全更新，处理 brotli 与 
 
 ## 验证和交付
 
-- 本地 PHPUnit 94 项 / 687 条断言，其中 2 项 MySQL 并发由 CI 执行；本地 PHP 8.3.6 仅为合成测试进程，
+- 本地 PHPUnit 100 项 / 733 条断言，其中 4 项真实 MySQL 测试由 CI 执行；本地 PHP 8.3.6 仅为合成测试进程，
   不是发布运行时证明。CI 和容器使用 PHP 8.4.27。
 - CI 使用真实 MySQL 8.4 多进程行锁测试，并在实际 MySQL/Redis/AdapterMan/Horizon 双实例中检查身份交替、
   即时撤权、原始 HMAC 和充值幂等。SQLite 不代替真实锁验证。

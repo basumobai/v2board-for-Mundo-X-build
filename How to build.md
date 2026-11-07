@@ -7,7 +7,9 @@
 - Docker 尚未安装：[官方安装文档](https://docs.docker.com/engine/install/)。
 - MySQL 已在宝塔中运行：为每个面板新建一个空库和独立用户；地址通常是 `127.0.0.1`，端口可在安装时填写。
 - 先准备面板完整网址（例如 `https://panel.example.com`）和管理员邮箱。
-- 本方案保留 Linux host 网络以兼容宿主机 MySQL。不是 Docker Desktop / 远程 Docker 安装器，也不会替你安装或改动系统 Docker、MySQL、防火墙。
+- 默认配置保留 Linux host 网络以兼容宿主机 MySQL；[隔离部署方案](docs/hardened-deployment.md) 另行迁移。不是 Docker Desktop / 远程 Docker 安装器，也不会替你安装或改动系统 Docker、MySQL、防火墙。
+
+运行栈为 Laravel 13.39.0 / PHP 8.4.27，PHP 镜像使用 Alpine 3.24 并安装系统安全更新。依赖以 composer.lock 为准，更新需要重建镜像与重启 Web、Horizon、Scheduler，不能只替换源码。[安全升级记录](docs/security-upgrade-20261101.md) 列明上游 19 个提交、漏洞处置与验证边界。
 
 ## 安装只执行这三条命令
 
@@ -65,14 +67,14 @@ location / {
     proxy_set_header Host $host;
     proxy_set_header Authorization $http_authorization;
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Forwarded-Host $host;
     proxy_set_header X-Forwarded-Port $server_port;
 }
 ```
 
-在 server 中设置 `client_max_body_size 32m;`，修改后先 `nginx -t` 再重载。不要公开 Web/Gateway、MySQL 或 Redis 端口。Cloudflare 如需使用，选择 Full (strict)，不要缓存后台、HTML、API 或订阅。
+外层代理覆盖客户端传入的 Forwarded Headers；不要直接信任其 X-Forwarded-For。若使用 Cloudflare 或其他代理，先按其实际来源地址配置可信 Real IP 链，再使用以上 `$remote_addr`。在 server 中设置 `client_max_body_size 32m;`，修改后先 `nginx -t` 再重载。不要公开 Web/Gateway、MySQL 或 Redis 端口。Cloudflare 如需使用，选择 Full (strict)，不要缓存后台、HTML、API 或订阅。
 
 ## 改端口或调整资源
 
@@ -104,9 +106,9 @@ Web 默认 2 个 Worker，不再按整台宿主机 CPU 翻倍。队列默认固�
 - 保留 Composer 优化自动加载，安装和更新时预编译 Blade 视图。
 - 默认禁用未经过本项目压测证明有益的 128 MB JIT 缓冲区；保留 OPcache 和时间戳检查。
 - 修复 APP_ENV=production 没有 Horizon 队列配置的问题；队列规模按实例参数控制，不再探测整台主机内存决定进程数。
-- 增加 HTTP 健康检查和容器日志轮转；继续保留数据库事务清理及请求结束断开连接的安全保护。
+- 增加 HTTP 健康检查和容器日志轮转；保留数据库事务清理，异常事务回滚后断开连接，健康的常驻连接继续复用。
 
-这一轮保留 PHP 8.2 / Laravel 8 / AdapterMan 及现有 API；数据库新增流量账本表、用户账期字段和相关索引。**没有完成框架安全升级或业务负载性能压测。** 没有给出未经测量的 QPS 提升百分比。
+本轮逐级升级至 Laravel 13 / PHP 8.4，保留 AdapterMan、现有 API、流量账本和跨账期边界，修复原始支付正文与常驻 Worker 的兼容问题。已增加真实 MySQL 并发、HTTP/Horizon 和容器安全检查；尚未执行生产负载压测，不提供未经测量的 QPS 提升百分比。
 
 ## 已有站点更新
 

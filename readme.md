@@ -56,7 +56,7 @@ COMPOSE_PROJECT_NAME=panel-b WEB_PORT=6601 GATEWAY_PORT=7002 bash init.sh
 
 旧报告超过 30 天会停止自动重放，需要人工核账。升级脚本或迁移校验失败时，先排查错误和队列状态；不要运行首次安装器，也不要单独回滚 MySQL 或 Redis。详细命令与故障处理见[部署指南](./How%20to%20build.md)。
 
-**验证范围：**[PR #16](https://github.com/basumobai/v2board-for-Mundo-X-build/pull/16) 扩展至 94 项 PHPUnit 测试、27 项 Node 测试、真实 MySQL 并发和桌面/手机浏览器回归。部署演练覆盖双实例安装、Redis 隔离、真实 Horizon 任务、默认/隔离网络安全更新及备份恢复，以该 PR 最终提交的完整 CI 为准。测试使用一次性数据库；尚未访问生产数据副本、真实支付商户或执行生产负载压测，上线仍需验证吞吐、锁等待和队列积压。
+**验证范围：**[PR #16](https://github.com/basumobai/v2board-for-Mundo-X-build/pull/16) 扩展至 100 项 PHPUnit 测试、27 项 Node 测试、真实 MySQL 并发和桌面/手机浏览器回归。部署演练覆盖双实例安装、Redis 隔离、真实 Horizon 任务、默认/隔离网络安全更新及备份恢复，以该 PR 最终提交的完整 CI 为准。测试使用一次性数据库；尚未访问生产数据副本、真实支付商户或执行生产负载压测，上线仍需验证吞吐、锁等待和队列积压。
 
 ## Mundo X
 

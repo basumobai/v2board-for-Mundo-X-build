@@ -35,7 +35,8 @@ trait CreatesSecurityDatabase
             $table->increments('id');
             $table->string('email')->default('user@example.test');
             foreach (['password', 'password_salt', 'password_algo', 'token', 'remember_token'] as $field) $table->string($field)->nullable();
-            foreach (['is_admin', 'is_staff', 'banned', 'balance', 'plan_id', 'group_id', 'speed_limit', 'device_limit', 'u', 'd', 'transfer_enable'] as $field) $table->bigInteger($field)->default(0);
+            foreach (['is_admin', 'is_staff', 'banned', 'balance', 'commission_balance', 'plan_id', 'group_id', 'speed_limit', 'device_limit', 'u', 'd', 'transfer_enable'] as $field) $table->bigInteger($field)->default(0);
+            $table->unsignedInteger('invite_user_id')->nullable();
             $table->integer('expired_at')->nullable();
             $table->integer('created_at');
             $table->integer('updated_at');
@@ -54,6 +55,10 @@ trait CreatesSecurityDatabase
             $table->increments('id');
             $table->unsignedInteger('user_id');
             $table->unsignedInteger('payment_id')->nullable();
+            $table->unsignedInteger('plan_id')->default(0);
+            $table->unsignedInteger('invite_user_id')->nullable();
+            $table->string('period')->default('deposit');
+            $table->integer('surplus_amount')->nullable();
             $table->string('trade_no', 36)->unique();
             $table->string('callback_no')->nullable();
             $table->integer('type')->default(9);
