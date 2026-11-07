@@ -6,7 +6,7 @@
 
 本分支提供：
 
-- PHP 8.2、AdapterMan、Nginx、Redis、Horizon 和 Scheduler 的 Compose 配置；
+- Laravel 13、PHP 8.4.27、AdapterMan、Nginx、Redis、Horizon 和 Scheduler 的 Compose 配置；
 - 安装时自定义 Web / Nginx 端口与 Worker 数量，默认端口 6600 / 7001，仅监听本机；
 - 同机多实例的容器、镜像、Redis 数据卷和缓存前缀隔离；
 - AdapterMan 常驻 Worker 下按内容变化刷新的动态配置缓存；
@@ -16,12 +16,16 @@
 - 更新前排空旧队列，严格校验数据库迁移和账本索引，校验失败时停止启动新版服务；
 - V2Board 管理员令牌驱动的 Horizon 鉴权；
 - 数据库事务跨请求隔离；
+- 严格认证与即时撤权、支付配置/金额绑定、订单并发幂等和敏感日志脱敏；
+- 可选的独立网络、非 root、源码只读部署，以及依赖审计、镜像扫描和 SBOM；
 - Mundo X、VMess、VLESS、Shadowsocks 等节点复制修复；
 - 完整安装、验收、备份和故障排查文档。
 
 ## 部署文档
 
 [阅读完整 Docker 部署与排错指南](./How%20to%20build.md)
+
+[安全升级记录与上游提交处置](./docs/security-upgrade-20261101.md) · [隔离部署迁移](./docs/hardened-deployment.md) · [安全更新与恢复](./docs/safe-update.md)
 
 准备好本机 Docker / Compose 2.20+ 和一个空 MySQL 数据库后，执行：
 
@@ -44,7 +48,7 @@ COMPOSE_PROJECT_NAME=panel-b WEB_PORT=6601 GATEWAY_PORT=7002 bash init.sh
 
 ## 已有站点升级
 
-本次更新会新增流量报告与 Redis 批次的 MySQL 账本、用户账期字段和必要索引。请在维护窗口执行，并先在**生产数据副本**上验证升级；升级过程中 Web 入口会暂时停止。
+本次更新将框架迁移至 Laravel 13，并保留流量报告与 Redis 批次的 MySQL 账本、用户账期字段和必要索引。请在维护窗口执行，并先在**生产数据副本**上验证升级；升级过程中 Web 入口会暂时停止。更新脚本会重建 PHP/Nginx 镜像并清理旧框架生成的缓存，不会自动切换隔离网络。
 
 1. 备份并确认能够恢复 MySQL 数据库、**当前实例的 Redis 数据卷**、`.env`、`config/v2board.php`、主题配置和自定义资源。MySQL 与 Redis 的备份应对应同一个维护时间点；不要只恢复其中一份后直接重放旧队列。
 2. 在已安装的 Git 仓库目录检查 `git status --short`。处理好本地修改，确认使用正确的实例名、端口和 Redis 卷，然后直接运行 `bash update.sh`。**不要先执行 `git pull`**：脚本会先获取远端代码，再停止旧服务、等待旧 `traffic_fetch` 和 `stat` 队列排空，最后切换代码、校验迁移并结算遗留 Redis 批次。
@@ -52,7 +56,7 @@ COMPOSE_PROJECT_NAME=panel-b WEB_PORT=6601 GATEWAY_PORT=7002 bash init.sh
 
 旧报告超过 30 天会停止自动重放，需要人工核账。升级脚本或迁移校验失败时，先排查错误和队列状态；不要运行首次安装器，也不要单独回滚 MySQL 或 Redis。详细命令与故障处理见[部署指南](./How%20to%20build.md)。
 
-**验证范围：**[PR #6 的完整 CI](https://github.com/basumobai/v2board-for-Mundo-X-build/actions/runs/36098235504) 已通过 60 项 PHPUnit 测试、25 项 Node 测试、双实例全新安装以及真实 MySQL/Redis 流量探针。尚未在生产数据副本上实跑 `update.sh`，也未做生产负载压测；上线后的吞吐、锁等待和队列积压需在灰度中测量。
+**验证范围：**[PR #16](https://github.com/basumobai/v2board-for-Mundo-X-build/pull/16) 扩展至 94 项 PHPUnit 测试、27 项 Node 测试、真实 MySQL 并发和桌面/手机浏览器回归。部署演练覆盖双实例安装、Redis 隔离、真实 Horizon 任务、默认/隔离网络安全更新及备份恢复，以该 PR 最终提交的完整 CI 为准。测试使用一次性数据库；尚未访问生产数据副本、真实支付商户或执行生产负载压测，上线仍需验证吞吐、锁等待和队列积压。
 
 ## Mundo X
 
@@ -68,13 +72,13 @@ COMPOSE_PROJECT_NAME=panel-b WEB_PORT=6601 GATEWAY_PORT=7002 bash init.sh
 - 不要在生产目录直接运行会执行 `git reset --hard` 的更新脚本；
 - 更新前先备份数据库、Redis 数据卷、`.env`、`config/v2board.php` 和主题配置。
 
-## 上游要求
+## 当前运行要求
 
-- PHP 7.3+；本 Docker 运行环境固定使用 PHP 8.2；
+- PHP 8.3+；本 Docker 运行环境使用 PHP 8.4.27 / Alpine 3.24，并在构建时安装系统安全更新；
 - MySQL；
 - Redis；
-- Composer；
-- Laravel 8。
+- Composer 按锁文件安装；
+- Laravel 13.39.0。非 Docker 部署须自行验证 PHP 补丁和扩展；旧 Laravel 8 环境不能直接复用旧 vendor。
 
 ## 反馈
 

@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Http\Middleware\CORS;
+use App\Http\Middleware\TrustProxies;
 use App\Jobs\SendEmailJob;
 use App\Logging\MysqlLoggerHandler;
 use App\Protocols\Shadowrocket;
@@ -19,6 +20,31 @@ use Tests\TestCase;
 class FrameworkUpgradeSecurityTest extends TestCase
 {
     use CreatesSecurityDatabase;
+
+    public function testLocalHealthDoesNotDependOnGatewayDnsAndOnlyGatewayCanForward(): void
+    {
+        config(['security.trusted_proxies' => ['127.0.0.1', '::1'], 'security.trusted_proxy_host' => 'gateway']);
+        $middleware = new class extends TrustProxies {
+            public int $lookups = 0;
+            protected function resolveProxyAddress(string $host): string
+            {
+                $this->lookups++;
+                return '172.20.0.2';
+            }
+        };
+        foreach (['127.0.0.1', '::1'] as $local) {
+            $request = Request::create('/healthz', 'GET', [], [], [], ['REMOTE_ADDR' => $local]);
+            $this->assertSame(200, $middleware->handle($request, fn () => response('ok'))->getStatusCode());
+        }
+        $this->assertSame(0, $middleware->lookups);
+        foreach (['172.20.0.2' => '203.0.113.7', '172.20.0.3' => '172.20.0.3'] as $remote => $expected) {
+            $request = Request::create('/', 'GET', [], [], [], [
+                'REMOTE_ADDR' => $remote, 'HTTP_X_FORWARDED_FOR' => '203.0.113.7',
+            ]);
+            $middleware->handle($request, fn () => response('ok'));
+            $this->assertSame($expected, $request->ip());
+        }
+    }
 
     public function testCallbackRateLimitKeepsPaymentConfigurationsIndependent(): void
     {

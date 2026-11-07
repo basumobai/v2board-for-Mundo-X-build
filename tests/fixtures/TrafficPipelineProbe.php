@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Redis;
 require __DIR__ . '/../../vendor/autoload.php';
 $app = require __DIR__ . '/../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
+set_exception_handler(static function (Throwable $error): void {
+    fwrite(STDERR, get_class($error) . ': ' . $error->getMessage() . PHP_EOL);
+    exit(1);
+});
 
 function assertSameValue($expected, $actual, string $message): void
 {

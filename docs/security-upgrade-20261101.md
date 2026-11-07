@@ -23,6 +23,7 @@
   核对协议提供且已认证的商户、币种、金额（含手续费）。无金额字段的旧协议只保证签名、配置和订单绑定。
 - Coinbase 只接受 charge:confirmed 入账；BTCPay 要求 InvoiceSettled 并复查已配置商店发票；
   CoinPayments 检查商户、币种和原币金额。HMAC 验证原始字节，不能重编码或改动空白。人工 resolved 事件需人工核查。
+  AdapterMan 请求显式注入 socket 原始正文，避免 CLI php://input 为空造成合法回调验签失败，后续请求不保留旧正文。
 - 保留订单及用户行锁、事务重试、开通状态检查、流量重置边界；付款状态转换与配置/金额检查在同一事务，提交后入队。
   结账切换渠道同样加锁。重复通知、并发开通和取消竞态不重复增加余额。
 - 恢复 Epusdt、MGate、BEasyPaymentUSDT 的 TLS 证书与主机名验证，无跳过验证选项。
@@ -98,13 +99,16 @@ JSON 保存原始公告链接、影响范围和日期。容器 OS、Nginx、Redi
 其中包含开发头文件映射到的内核公告，不等于容器正在运行相应内核代码。
 本批将 PHP 基础系统迁移至 Alpine 3.24，构建后移除编译器/开发头文件；
 Nginx 两种镜像固定 1.30.6 并安装底层安全更新，处理 brotli 与 curl 公告。没有据此增加扫描忽略。
-最终仍以重建后的实际镜像扫描为准。
+修正后的实际镜像在 [CI 41297617432](https://github.com/basumobai/v2board-for-Mundo-X-build/actions/runs/41297617432)
+扫描均为 **0 条 HIGH/CRITICAL**：PHP、标准 Nginx、非 root Nginx、Redis；该次整体部署检查仍失败，
+不能将单项扫描通过当作完整 CI 通过。扫描 JSON、镜像记录和 SBOM 保存在其 runtime-security-and-sbom 产物中。
 
 ## Web 和容器加固
 
 - CORS 只接受白名单/应用/可信前端，拒绝 Referer 推导和任意 Origin 反射，凭据默认关闭；预检不进入控制器。
   支付通知地址来自 BACKEND_URL 或已保存的网关配置。
 - 代理默认仅信任 loopback，通过 TRUSTED_PROXIES 扩展；隔离部署额外仅信任本实例 gateway DNS 地址。
+  本地健康检查不解析尚未启动的 gateway，避免 Nginx 等待 PHP 健康时发生 DNS 启动依赖循环。
   外层代理必须清除并重设 X-Forwarded-*。HTTPS 与真实 IP 不能依靠客户端自报。
 - 加入 nosniff、SAMEORIGIN、Referrer/Permissions Policy、基础 CSP、HTTPS HSTS 与 API no-store。
   保留现有 React/主题行为，没有宣称实现严格脚本 nonce CSP。
@@ -119,7 +123,7 @@ Nginx 两种镜像固定 1.30.6 并安装底层安全更新，处理 brotli 与 
 
 ## 验证和交付
 
-- 本地最终 PHPUnit 92 项 / 676 条断言，其中 2 项 MySQL 并发由 CI 执行；本地 PHP 8.3.6 仅为合成测试进程，
+- 本地 PHPUnit 94 项 / 687 条断言，其中 2 项 MySQL 并发由 CI 执行；本地 PHP 8.3.6 仅为合成测试进程，
   不是发布运行时证明。CI 和容器使用 PHP 8.4.27。
 - CI 使用真实 MySQL 8.4 多进程行锁测试，并在实际 MySQL/Redis/AdapterMan/Horizon 双实例中检查身份交替、
   即时撤权、原始 HMAC 和充值幂等。SQLite 不代替真实锁验证。
@@ -129,6 +133,7 @@ Nginx 两种镜像固定 1.30.6 并安装底层安全更新，处理 brotli 与 
 - Composer audit 阻断公告；Trivy HIGH/CRITICAL 包含未修复项，产出应用和镜像 CycloneDX SBOM、JSON 和镜像 ID/digest。
   CodeQL 扫描自有 JavaScript 与 Actions，**不支持 PHP**。Action 固定完整 SHA，权限按作业授予，Dependabot 每周提出更新。
 - GitHub PR 最新完整检查是最终验收依据，失败/未执行项不能计通过。新公告和不同构建仍须重新扫描。
+  独立运行的 PHP 演练在异常时显式返回非零，避免框架控制台异常处理器把失败记录成成功。
 
 ## 上线和回滚
 

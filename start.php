@@ -60,7 +60,7 @@ function run()
     ob_start();
 
     $response = $kernel->handle(
-        $request = Illuminate\Http\Request::capture()
+        $request = App\Support\WorkerRequest::capture()
     );
 
     $response->send();

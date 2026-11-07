@@ -6,6 +6,12 @@ if (getenv('CI') !== 'true') throw new RuntimeException('Requires disposable CI 
 require __DIR__ . '/../../vendor/autoload.php';
 $app = require __DIR__ . '/../../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+// Laravel's console exception renderer may otherwise exit with status zero
+// when a standalone probe throws outside Artisan's command dispatcher.
+set_exception_handler(static function (Throwable $error): void {
+    fwrite(STDERR, get_class($error) . ': ' . $error->getMessage() . PHP_EOL);
+    exit(1);
+});
 
 use App\Models\User;
 use App\Models\Payment;
@@ -76,8 +82,9 @@ try {
     };
     [$status] = $send(false);
     checkRuntime($status >= 400, 'Invalid webhook signature accepted');
-    [$status] = $send();
-    checkRuntime($status === 200 && (int) $order->fresh()->status === 0, 'Created event settled order');
+    [$status, $body] = $send();
+    checkRuntime($status === 200 && (int) $order->fresh()->status === 0,
+        'Created event must be acknowledged without settlement; HTTP ' . $status);
     $event['event']['type'] = 'charge:confirmed';
     [$status] = $send();
     checkRuntime($status === 200, 'Confirmed raw-byte HMAC webhook rejected');

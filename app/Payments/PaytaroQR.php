@@ -105,7 +105,7 @@ class PaytaroQR
             return false;
         }
         if (!is_array($params) || !isset($params['merchant_no'])) {
-            $raw = json_decode((string) file_get_contents('php://input'), true);
+            $raw = json_decode(request()->getContent(), true);
             if (is_array($raw)) {
                 $params = $raw;
             }

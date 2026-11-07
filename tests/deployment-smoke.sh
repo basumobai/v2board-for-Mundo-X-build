@@ -12,6 +12,7 @@ cleanup() {
         if [[ -f $test_dir/$panel/.env ]]; then
             if (( result != 0 )); then
                 (cd "$test_dir/$panel" && docker compose logs --tail=100 web gateway horizon) || true
+                (cd "$test_dir/$panel" && docker compose ps -aq | xargs -r docker inspect --format '{{.Name}} {{json .State.Health}}') || true
             fi
             (cd "$test_dir/$panel" && docker compose down -v) || true
         fi
