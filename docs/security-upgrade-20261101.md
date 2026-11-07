@@ -28,6 +28,7 @@
 - Coinbase 只接受 charge:confirmed 入账；BTCPay 要求 InvoiceSettled 并复查已配置商店发票；
   CoinPayments 检查商户、币种和原币金额。HMAC 验证原始字节，不能重编码或改动空白。人工 resolved 事件需人工核查。
   AdapterMan 请求显式注入 socket 原始正文，避免 CLI php://input 为空造成合法回调验签失败，后续请求不保留旧正文。
+  GET 缓存命中时以当前 socket 地址覆盖旧连接元数据，清除遗留上传信息，确保真实 IP 与代理信任判断使用当前连接。
 - 保留订单及用户行锁、事务重试、开通状态检查、流量重置边界；付款状态转换与配置/金额检查在同一事务，提交后入队。
   结账切换渠道同样加锁。重复通知、并发开通和取消竞态不重复增加余额。
 - 恢复 Epusdt、MGate、BEasyPaymentUSDT 的 TLS 证书与主机名验证，无跳过验证选项。
@@ -151,7 +152,7 @@ Nginx 两种镜像固定 1.30.6 并安装底层安全更新，处理 brotli 与 
 
 ## 验证和交付
 
-- 本地 PHPUnit 100 项 / 733 条断言，其中 4 项真实 MySQL 测试由 CI 执行；本地 PHP 8.3.6 仅为合成测试进程，
+- 本地 PHPUnit 100 项 / 736 条断言，其中 4 项真实 MySQL 测试由 CI 执行；本地 PHP 8.3.6 仅为合成测试进程，
   不是发布运行时证明。CI 和容器使用 PHP 8.4.27。
 - CI 使用真实 MySQL 8.4 多进程行锁测试，并在实际 MySQL/Redis/AdapterMan/Horizon 双实例中检查身份交替、
   即时撤权、原始 HMAC 和充值幂等。SQLite 不代替真实锁验证。

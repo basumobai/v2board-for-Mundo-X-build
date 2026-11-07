@@ -31,7 +31,11 @@ $http_worker->onWorkerStart = static function () {
 
 $http_worker->onMessage = static function ($connection, $request) {
     static $request_count = 0;
-    $connection->send(run());
+    $connection->send(run([
+        'REMOTE_ADDR' => $connection->getRemoteIp(),
+        'REMOTE_PORT' => $connection->getRemotePort(),
+        'SERVER_ADDR' => $connection->getLocalIp(),
+    ]));
     $runtimeConfig = app(RuntimeConfigService::class);
     if ($runtimeConfig->pullWorkerReloadRequest() && defined('SIGUSR2')) {
         @posix_kill(posix_getppid(), SIGUSR2);

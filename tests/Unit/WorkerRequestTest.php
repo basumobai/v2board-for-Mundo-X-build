@@ -23,12 +23,17 @@ class WorkerRequestTest extends TestCase
             $this->assertSame($request->header('X-Signature'), hash_hmac('sha256', $request->getContent(), 'secret'));
 
             $_POST = [];
-            $_SERVER = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/healthz'];
+            $_SERVER = ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/healthz', 'REMOTE_ADDR' => '203.0.113.1'];
+            $_FILES = ['previous_upload' => ['name' => 'private.txt', 'type' => 'text/plain',
+                'tmp_name' => '/not-a-current-upload', 'error' => 0, 'size' => 123]];
             $GLOBALS['HTTP_RAW_REQUEST_DATA'] = '';
-            $next = WorkerRequest::capture();
+            $next = WorkerRequest::capture(['REMOTE_ADDR' => '198.51.100.17', 'REMOTE_PORT' => 55000]);
             $this->assertSame('', $next->getContent());
             $this->assertNull($next->input('event'));
             $this->assertNull($next->header('X-Signature'));
+            $this->assertSame('198.51.100.17', $next->ip());
+            $this->assertSame(55000, $next->server('REMOTE_PORT'));
+            $this->assertSame([], $next->allFiles());
         } finally {
             [$_GET, $_POST, $_COOKIE, $_FILES, $_SERVER, $raw] = $saved;
             if ($raw === null) unset($GLOBALS['HTTP_RAW_REQUEST_DATA']);
